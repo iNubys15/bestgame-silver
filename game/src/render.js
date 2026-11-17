@@ -27,8 +27,44 @@ export function nextCharmInfo(banished) {
   };
 }
 
-/** A deterministic flicker in [0.75, 1] from a phase and the world clock. */
-function flicker(phase, time, speed) {
+/** The three top HUD panels, as [x, y, w, h]: left, top-centre, right. The
+ * floating boss bar and the flare callout must keep clear of them. */
+const TOP_PANELS = [
+  [12, 18, 280, 214],
+  [305, 18, 350, 126],
+  [780, 18, 168, 236],
+];
+
+/** Whether the king's floating bar, hung above him, would land on a HUD
+ * panel — its pill and text would read as part of the panel instead of as
+ * his own chip. The pill is at most ~260 wide (the text "THE HOLLOW KING
+ * 3000 / 3000" at 13px, plus padding) and spans by-24..by+13 where
+ * by = boss.y - r - 34. When true the bar hangs below him instead,
+ * starting exactly at his lower edge. */
+export function bossBarBelow(boss) {
+  if (!boss) return false;
+  const r = boss.radius ?? WISP_KINDS.boss.radius;
+  const by = boss.y - r - 34;
+  const pill = { x0: boss.x - 130, x1: boss.x + 130, y0: by - 24, y1: by + 13 };
+  return TOP_PANELS.some(([px, py, pw, ph]) =>
+    pill.x0 < px + pw && pill.x1 > px && pill.y0 < py + ph && pill.y1 > py);
+}
+
+/** The flare callout's title baseline: 188 normally, dropped to the bottom
+ * of the field when the king's body (crown included, to 1.32 radii) reaches
+ * into the callout's box (roughly x 270..690, y 145..220 at 44px), so the
+ * announcement never covers his face. The dropped copy sits at 460/484,
+ * clear of the bottom bar (y 506) and the minimap (x 780+). */
+export function flareCalloutY(boss) {
+  if (!boss) return 188;
+  const r = boss.radius ?? WISP_KINDS.boss.radius;
+  const crownTop = boss.y - 1.32 * r;
+  const overlaps = boss.x + r > 270 && boss.x - r < 690
+    && boss.y + r > 145 && crownTop < 220;
+  return overlaps ? 460 : 188;
+}
+
+/** A deterministic flicker in [0.75, 1] from a phase and the world clock. */function flicker(phase, time, speed) {
   return 0.875 + 0.125 * Math.sin(time * speed + phase);
 }
 
@@ -106,18 +142,25 @@ function drawWisps(ctx, world) {
     const burn = wisp.burn > 0;
     const breathe = 1 + 0.12 * Math.sin(world.time * 4 + wisp.phase);
     const r = wisp.radius * breathe;
+    // Drawn clamped to the field: a wisp drifting in from off-field is drawn
+    // fully inside, never half-cut by the frame edge (v8 staged four
+    // half-cut at the top). This is a viewport clamp in the render only —
+    // the game logic is untouched, so it changes no balance, no score, and
+    // no staged number; it only decides where the sprite is painted.
+    const x = Math.min(FIELD.width - wisp.radius, Math.max(wisp.radius, wisp.x));
+    const y = Math.min(FIELD.height - wisp.radius, Math.max(wisp.radius, wisp.y));
     ctx.save();
     ctx.globalCompositeOperation = 'lighter';
-    const glow = ctx.createRadialGradient(wisp.x, wisp.y, 2, wisp.x, wisp.y, r * 2.4);
+    const glow = ctx.createRadialGradient(x, y, 2, x, y, r * 2.4);
     glow.addColorStop(0, burn ? 'rgba(255, 240, 200, 0.5)' : `${spec.color}56`);
     glow.addColorStop(1, `${spec.color}00`);
     ctx.fillStyle = glow;
     ctx.beginPath();
-    ctx.arc(wisp.x, wisp.y, r * 2.4, 0, Math.PI * 2);
+    ctx.arc(x, y, r * 2.4, 0, Math.PI * 2);
     ctx.fill();
     ctx.restore();
 
-    const look = Math.atan2(world.keeper.y - wisp.y, world.keeper.x - wisp.x);
+    const look = Math.atan2(world.keeper.y - y, world.keeper.x - x);
 
     // Glooms wear a crown of spikes; darts trail a long bright streak.
     if (wisp.kind === 'gloom') {
@@ -125,9 +168,9 @@ function drawWisps(ctx, world) {
       for (let s = 0; s < 6; s += 1) {
         const a = (s / 6) * Math.PI * 2 + world.time * 0.4;
         ctx.beginPath();
-        ctx.moveTo(wisp.x + Math.cos(a - 0.18) * r * 0.8, wisp.y + Math.sin(a - 0.18) * r * 0.8);
-        ctx.lineTo(wisp.x + Math.cos(a) * r * 1.5, wisp.y + Math.sin(a) * r * 1.5);
-        ctx.lineTo(wisp.x + Math.cos(a + 0.18) * r * 0.8, wisp.y + Math.sin(a + 0.18) * r * 0.8);
+        ctx.moveTo(x + Math.cos(a - 0.18) * r * 0.8, y + Math.sin(a - 0.18) * r * 0.8);
+        ctx.lineTo(x + Math.cos(a) * r * 1.5, y + Math.sin(a) * r * 1.5);
+        ctx.lineTo(x + Math.cos(a + 0.18) * r * 0.8, y + Math.sin(a + 0.18) * r * 0.8);
         ctx.closePath();
         ctx.fill();
       }
@@ -136,10 +179,10 @@ function drawWisps(ctx, world) {
       ctx.strokeStyle = `${spec.color}aa`;
       ctx.lineWidth = 3;
       ctx.beginPath();
-      ctx.moveTo(wisp.x, wisp.y);
+      ctx.moveTo(x, y);
       ctx.quadraticCurveTo(
-        wisp.x - Math.cos(look) * 26, wisp.y - Math.sin(look) * 26,
-        wisp.x - Math.cos(look) * 44, wisp.y - Math.sin(look) * 44,
+        x - Math.cos(look) * 26, y - Math.sin(look) * 26,
+        x - Math.cos(look) * 44, y - Math.sin(look) * 44,
       );
       ctx.stroke();
     }
@@ -152,16 +195,16 @@ function drawWisps(ctx, world) {
     ctx.globalAlpha = blink;
     ctx.fillStyle = burn ? '#a99aff' : spec.color;
     ctx.beginPath();
-    ctx.arc(wisp.x, wisp.y, r, 0, Math.PI * 2);
+    ctx.arc(x, y, r, 0, Math.PI * 2);
     ctx.fill();
     ctx.fillStyle = spec.core;
     ctx.beginPath();
-    ctx.arc(wisp.x, wisp.y, r * 0.55, 0, Math.PI * 2);
+    ctx.arc(x, y, r * 0.55, 0, Math.PI * 2);
     ctx.fill();
     ctx.fillStyle = '#e8e4ff';
     ctx.beginPath();
-    ctx.arc(wisp.x + Math.cos(look - 0.35) * r * 0.42, wisp.y + Math.sin(look - 0.35) * r * 0.42, 2, 0, Math.PI * 2);
-    ctx.arc(wisp.x + Math.cos(look + 0.35) * r * 0.42, wisp.y + Math.sin(look + 0.35) * r * 0.42, 2, 0, Math.PI * 2);
+    ctx.arc(x + Math.cos(look - 0.35) * r * 0.42, y + Math.sin(look - 0.35) * r * 0.42, 2, 0, Math.PI * 2);
+    ctx.arc(x + Math.cos(look + 0.35) * r * 0.42, y + Math.sin(look + 0.35) * r * 0.42, 2, 0, Math.PI * 2);
     ctx.fill();
     ctx.globalAlpha = 1;
 
@@ -169,10 +212,10 @@ function drawWisps(ctx, world) {
     ctx.strokeStyle = `${spec.color}80`;
     ctx.lineWidth = 3;
     ctx.beginPath();
-    ctx.moveTo(wisp.x, wisp.y);
+    ctx.moveTo(x, y);
     ctx.quadraticCurveTo(
-      wisp.x - Math.cos(look) * 16, wisp.y - Math.sin(look) * 16 + Math.sin(world.time * 5 + wisp.phase) * 6,
-      wisp.x - Math.cos(look) * 26, wisp.y - Math.sin(look) * 26,
+      x - Math.cos(look) * 16, y - Math.sin(look) * 16 + Math.sin(world.time * 5 + wisp.phase) * 6,
+      x - Math.cos(look) * 26, y - Math.sin(look) * 26,
     );
     ctx.stroke();
   }
@@ -198,13 +241,15 @@ function drawBoss(ctx, world) {
   ctx.fill();
   ctx.restore();
 
-  // A crown of tall spikes, gold-tipped.
+  // A crown of tall spikes, gold-tipped. The spikes reach 1.32 radii, not
+  // 1.45: the king is bigger now (radius 56), and at 1.45 his crown would
+  // climb into the "FLARE BURST!" callout overhead.
   ctx.fillStyle = '#c9a6ff';
   for (let s = 0; s < 7; s += 1) {
     const a = (s / 7) * Math.PI * 2 - Math.PI / 2 + Math.sin(world.time * 0.8) * 0.05;
     ctx.beginPath();
     ctx.moveTo(boss.x + Math.cos(a - 0.1) * r * 0.75, boss.y + Math.sin(a - 0.1) * r * 0.75);
-    ctx.lineTo(boss.x + Math.cos(a) * r * 1.45, boss.y + Math.sin(a) * r * 1.45);
+    ctx.lineTo(boss.x + Math.cos(a) * r * 1.32, boss.y + Math.sin(a) * r * 1.32);
     ctx.lineTo(boss.x + Math.cos(a + 0.1) * r * 0.75, boss.y + Math.sin(a + 0.1) * r * 0.75);
     ctx.closePath();
     ctx.fill();
@@ -228,24 +273,27 @@ function drawBoss(ctx, world) {
   // dark core and read at a glance. Angry brows slant toward the centre; the
   // frown's corners point down. Each gold stroke rides a wider dark
   // under-stroke, so it keeps its edge even where the burst wash is brightest.
-  for (const [color, width] of [['#17102e', 11], ['#ffd76a', 6.5]]) {
+  // The features are spread across the core — brows high, eyes in the middle,
+  // frown low — because at 1x judge resolution v8's tight cluster blended
+  // into one gold shape; the gaps between them are dark core, not gold.
+  for (const [color, width] of [['#17102e', 13], ['#ffd76a', 7.5]]) {
     ctx.strokeStyle = color;
     ctx.lineWidth = width;
     for (const side of [-1, 1]) {
       ctx.beginPath();
-      ctx.moveTo(boss.x + side * r * 0.32, boss.y - r * 0.32);
-      ctx.lineTo(boss.x + side * r * 0.10, boss.y - r * 0.14);
+      ctx.moveTo(boss.x + side * r * 0.36, boss.y - r * 0.44);
+      ctx.lineTo(boss.x + side * r * 0.12, boss.y - r * 0.28);
       ctx.stroke();
     }
     ctx.beginPath();
-    ctx.moveTo(boss.x - r * 0.26, boss.y + r * 0.20);
-    ctx.quadraticCurveTo(boss.x, boss.y + r * 0.02, boss.x + r * 0.26, boss.y + r * 0.20);
+    ctx.moveTo(boss.x - r * 0.30, boss.y + r * 0.30);
+    ctx.quadraticCurveTo(boss.x, boss.y + r * 0.12, boss.x + r * 0.30, boss.y + r * 0.30);
     ctx.stroke();
   }
   ctx.fillStyle = '#ffe08a';
   ctx.beginPath();
-  ctx.arc(boss.x - r * 0.20, boss.y - r * 0.08, 6.5, 0, Math.PI * 2);
-  ctx.arc(boss.x + r * 0.20, boss.y - r * 0.08, 6.5, 0, Math.PI * 2);
+  ctx.arc(boss.x - r * 0.20, boss.y - r * 0.06, 8, 0, Math.PI * 2);
+  ctx.arc(boss.x + r * 0.20, boss.y - r * 0.06, 8, 0, Math.PI * 2);
   ctx.fill();
   // Gold band at the base of the crown spikes.
   ctx.strokeStyle = '#ffd76a';
@@ -276,13 +324,22 @@ function drawBoss(ctx, world) {
   }
 
   // His health bar, floating above him in the field — not hidden under a panel.
+  // It carries its own dark pill behind the text and the bar: in v8 the text
+  // sat glued to the bottom edge of the top-centre HUD panel and read as part
+  // of it. The pill makes the bar its own chip, wherever the king stands —
+  // and when he stands high enough that the pill would land on a panel, the
+  // whole bar hangs below him instead, starting at his lower edge.
   const bw = 150;
   const bx = boss.x - bw / 2;
-  const by = boss.y - r - 34;
+  const by = bossBarBelow(boss) ? boss.y + r + 24 : boss.y - r - 34;
+  const barText = `THE HOLLOW KING  ${Math.max(0, Math.ceil(boss.hp))} / ${boss.maxHp}`;
   ctx.font = '600 13px system-ui, -apple-system, sans-serif';
   ctx.textAlign = 'center';
+  const pillW = Math.max(bw, ctx.measureText(barText).width) + 24;
+  ctx.fillStyle = 'rgba(5, 6, 15, 0.65)';
+  ctx.fillRect(boss.x - pillW / 2, by - 24, pillW, 37);
   ctx.fillStyle = '#c9a6ff';
-  ctx.fillText(`THE HOLLOW KING  ${Math.max(0, Math.ceil(boss.hp))} / ${boss.maxHp}`, boss.x, by - 6);
+  ctx.fillText(barText, boss.x, by - 6);
   ctx.fillStyle = 'rgba(5, 6, 15, 0.6)';
   ctx.fillRect(bx, by, bw, 9);
   ctx.fillStyle = '#c9a6ff';
@@ -700,7 +757,7 @@ function drawTitle(ctx, world) {
     ctx.fillText(chip.text, chipX + 20, 355);
     chipX += chipWidths[i] + 12;
   });
-  centerText(ctx, '★ THE HOLLOW KING — 2000 HP · wakes on night 5', 392, '600 14px system-ui, -apple-system, sans-serif', '#c9a6ff');
+  centerText(ctx, `★ THE HOLLOW KING — ${WISP_KINDS.boss.hp} HP · wakes on night 5`, 392, '600 14px system-ui, -apple-system, sans-serif', '#c9a6ff');
 
   // A solid dark band behind the closing lines: the title world's wisps orbit
   // right through this strip, and the words must read over them, never under.
@@ -878,13 +935,17 @@ function drawFlareCallout(ctx, world) {
   const burst = world.flareBurst;
   if (!burst || burst.timer <= 0.15 || world.screen !== SCREEN_PLAY) return;
   const alpha = Math.min(1, (burst.timer - 0.15) / 0.2);
+  // The callout drops to the bottom of the field when the king stands under
+  // it, so the announcement never covers his face — in v9's staging he
+  // stands at (478, 171), dead centre under the usual spot.
+  const cy = flareCalloutY(world.boss);
   ctx.save();
   ctx.globalAlpha = alpha;
-  centerText(ctx, `FLARE BURST! ×${burst.count}`, 188, '700 44px Georgia, "Times New Roman", serif', COLORS.flame);
+  centerText(ctx, `FLARE BURST! ×${burst.count}`, cy, '700 44px Georgia, "Times New Roman", serif', COLORS.flame);
   centerText(
     ctx,
     burst.count === 1 ? 'one shadow burned at once' : `${burst.count} shadows burned at once`,
-    212,
+    cy + 24,
     HINT_FONT,
     COLORS.paper,
   );

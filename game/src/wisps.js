@@ -21,10 +21,12 @@ export function createBoss(rng) {
   const edge = Math.floor(rng() * 4);
   let x;
   let y;
-  if (edge === 0) { x = range(rng, 0, FIELD.width); y = -40; }
-  else if (edge === 1) { x = range(rng, 0, FIELD.width); y = FIELD.height + 40; }
-  else if (edge === 2) { x = -40; y = range(rng, 0, FIELD.height); }
-  else { x = FIELD.width + 40; y = range(rng, 0, FIELD.height); }
+  // Spawned just inside the field, never half off it: a boss cut by the frame
+  // edge reads as a mistake, and the staged shot must never show one.
+  if (edge === 0) { x = range(rng, 0, FIELD.width); y = spec.radius; }
+  else if (edge === 1) { x = range(rng, 0, FIELD.width); y = FIELD.height - spec.radius; }
+  else if (edge === 2) { x = spec.radius; y = range(rng, 0, FIELD.height); }
+  else { x = FIELD.width - spec.radius; y = range(rng, 0, FIELD.height); }
   return {
     kind: 'boss',
     x,
@@ -44,6 +46,12 @@ export function createWisp(rng, night) {
   const edge = Math.floor(rng() * 4);
   let x;
   let y;
+  // Spawned just off the field, as before: spawning inside the field made
+  // the shadows reach the keeper a step sooner, and the careless pilot — the
+  // loss shot's stand-in — died on night 1 instead of night 3. The clamp in
+  // stepWisps is what keeps a wisp from ever rendering half-cut, so the
+  // spawn itself can stay off-field: a fresh wisp is fully off-screen for
+  // its first step, then fully on-screen once it is clamped inside.
   if (edge === 0) { x = range(rng, 0, FIELD.width); y = -20; }
   else if (edge === 1) { x = range(rng, 0, FIELD.width); y = FIELD.height + 20; }
   else if (edge === 2) { x = -20; y = range(rng, 0, FIELD.height); }

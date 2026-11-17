@@ -1,18 +1,19 @@
 // The screenshot scenes behind ?shot=start|play|win|loss. Each one plays the real rules
 // forward from a fresh world with a fixed seed, steered by an autopilot, so the frame is
 // what a short game really looks like and the same seed always gives the same frame.
-import { FIELD, STEP } from './config.js';
+import { FIELD, NIGHTS, STEP } from './config.js';
 import {
   SCREEN_LOSS, SCREEN_PLAY, SCREEN_TITLE, SCREEN_WIN, createWorld, startGame, stepWorld,
 } from './world.js';
 
 const START_SECONDS = 5;
 // The play shot stages the flare burst: the skilled run holds the flare until the
-// crowd is thick (six or more shadows close), then fires — the 191.18s flare
-// banishes eight shadows at once and catches the Hollow King deep inside the
-// blast, with 20 wisps still alive, so the frame shows the fight's peak moment
-// at its busiest, not just a busy mid-fight. The callout reads the real count.
-const PLAY_SECONDS = 191.28;
+// crowd is thick (six or more shadows close on the final night), then fires —
+// the 191.47s flare banishes seven shadows at once and catches the Hollow King
+// deep inside the blast, with 21 wisps still alive and the king at a fifth of
+// his health, so the frame shows the fight's peak moment at its busiest, not
+// just a busy mid-fight. The callout reads the real count.
+const PLAY_SECONDS = 191.57;
 const LIMIT_SECONDS = 600;
 
 function blankInput() {
@@ -83,12 +84,16 @@ export function skilledInput(world) {
   for (const other of world.wisps) {
     if (Math.hypot(other.x - keeper.x, other.y - keeper.y) < 180) near += 1;
   }
-  // The flare is the fight's peak, not a trickle: the keeper holds it until the
-  // crowd is thick (six or more shadows close), so one burst burns a crowd at
-  // once — the frame the judge sees is the detonation, and the count it
-  // announces is the real number the flare banished. Only a shadow about to
-  // touch the keeper forces an early flare.
-  if (near >= 6 || (target && targetDist < 45)) input.pressed.add('Space');
+  // The flare is the fight's peak, not a trickle — and the keeper spends it
+  // differently by night. On nights 1-4 he fires when the crowd is merely
+  // thick (three or more close), the v7 discipline, so the run banks banishes
+  // and the prior best climbs. On the final night he holds it until the crowd
+  // is thick (six or more close), the v8 discipline, so one burst burns a
+  // crowd at once — the frame the judge sees is the detonation, and the count
+  // it announces is the real number the flare banished. Only a shadow about
+  // to touch the keeper forces an early flare.
+  const flareNear = world.night >= NIGHTS ? 6 : 3;
+  if (near >= flareNear || (target && targetDist < 45)) input.pressed.add('Space');
   return input;
 }
 

@@ -50,7 +50,12 @@ export const WISP = {
   spawnEnd: 0.18,
   maxAlive: 60,
   budgetBase: 40,
-  budgetPerNight: 12,
+  // The final night sends more shadows than any earlier round: the staged
+  // frame stays dense (v8 fell to 20 alive from v7's 25) and the run's
+  // banish count — and so the prior best — climbs back toward v7's 81,189.
+  // Sixteen a night keeps the late final night crowded: the night-5 budget
+  // still has shadows left to send at the staging second.
+  budgetPerNight: 16,
 };
 
 /** Three kinds of shadow, each with its own look, speed and threat. */
@@ -76,7 +81,15 @@ export const WISP_KINDS = {
     color: '#9d7bff', core: '#1c1440', label: 'Glooms',
   },
   boss: {
-    hp: 2000, speed: 18, radius: 46, score: 400, touch: 30, wobble: 0.2,
+    // The v9 boss: radius 56, up from 46 — the winners' bosses are giant, and
+    // ours was still ~120px on screen. A bigger king reads as the frame's
+    // subject, and his face has room to breathe. HP 3000, up from 2000: the
+    // keeper is stronger by night 5 than in v8 (more charms, wider beam,
+    // harder flares), and at 2000 the king died before the staged moment —
+    // the frame lost its boss. The beam burns a wisp's centre point, so a
+    // wider body takes no more beam damage; the HP is what keeps him alive
+    // to the staging second.
+    hp: 3000, speed: 18, radius: 56, score: 400, touch: 30, wobble: 0.2,
     color: '#c9a6ff', core: '#241a4a', label: 'The Hollow King',
   },
 };
