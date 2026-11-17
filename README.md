@@ -17,7 +17,7 @@ while the keeper fights the last shadows.
 
 - **Move** — WASD or arrow keys
 - **Aim the beam** — mouse (wisps caught in the light burn away)
-- **Flare** — Space or click (a bright burst that burns nearby wisps, costs light; the play shot catches the burst the instant it banishes five shadows at once with the Hollow King inside the blast)
+- **Flare** — Space or click (a bright burst that burns nearby wisps, costs light; the keeper holds it until the crowd is thick, so the play shot catches the burst the instant it banishes eight shadows at once with the Hollow King inside the blast)
 - **Start / restart** — Enter or R
 
 Survive 5 nights to win. Each night the wisps come faster and thicker. Embers restore
@@ -29,9 +29,11 @@ and the HUD shows a minimap of the hollow plus a countdown to dawn.
 
 Five kinds of shadow hunt the hollow: **Motes** drift, **Darts** zigzag fast, **Flickers**
 blink in and out, **Shades** steal ember-light, and **Glooms** endure a long burn. On the
-fifth night **THE HOLLOW KING** wakes — a giant wisp with 2000 health. Every 20 banished
-wisps earns an ember charm (Wide Beam, Hot Flare, Deep Well, Swift Feet) that strengthens
-the keeper for the rest of the run.
+fifth night **THE HOLLOW KING** wakes — a giant wisp with 2000 health, whose angry face
+stares out of the hollow at you. Every 20 banished wisps earns an ember charm (Wide Beam,
+Hot Flare, Deep Well, Swift Feet) that strengthens the keeper for the rest of the run,
+and the HUD names the next charm in the cycle and how many banishes stand between you
+and it.
 
 ## Run it
 

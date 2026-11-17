@@ -164,9 +164,9 @@ function drawGroundGlows(ctx, world) {
     ctx.arc(x, y, 2, 0, Math.PI * 2);
     ctx.fill();
   }
-  // Three more pools in the lower-left quadrant, the sparsest part of the
+  // Five more pools in the lower-left quadrant, the sparsest part of the
   // frame: fixed positions, so the same moment always draws the same hollow.
-  for (const [gx, gy] of [[110, 430], [260, 480], [180, 385]]) {
+  for (const [gx, gy] of [[110, 430], [260, 480], [180, 385], [70, 340], [320, 500]]) {
     const pulse = 0.18 + 0.08 * Math.sin(world.time * 0.7 + gx * 0.02);
     ctx.save();
     ctx.globalCompositeOperation = 'lighter';

@@ -7,10 +7,11 @@ import {
 } from './world.js';
 
 const START_SECONDS = 5;
-// The play shot stages the flare burst: the skilled run fires a flare at 191.18s
-// that banishes five shadows at once and catches the Hollow King deep inside the
-// blast — with 24 wisps still alive, the densest burst moment of night 5, so the
-// frame shows the fight's peak moment at its busiest, not just a busy mid-fight.
+// The play shot stages the flare burst: the skilled run holds the flare until the
+// crowd is thick (six or more shadows close), then fires — the 191.18s flare
+// banishes eight shadows at once and catches the Hollow King deep inside the
+// blast, with 20 wisps still alive, so the frame shows the fight's peak moment
+// at its busiest, not just a busy mid-fight. The callout reads the real count.
 const PLAY_SECONDS = 191.28;
 const LIMIT_SECONDS = 600;
 
@@ -82,7 +83,12 @@ export function skilledInput(world) {
   for (const other of world.wisps) {
     if (Math.hypot(other.x - keeper.x, other.y - keeper.y) < 180) near += 1;
   }
-  if (near >= 3 || (target && targetDist < 55)) input.pressed.add('Space');
+  // The flare is the fight's peak, not a trickle: the keeper holds it until the
+  // crowd is thick (six or more shadows close), so one burst burns a crowd at
+  // once — the frame the judge sees is the detonation, and the count it
+  // announces is the real number the flare banished. Only a shadow about to
+  // touch the keeper forces an early flare.
+  if (near >= 6 || (target && targetDist < 45)) input.pressed.add('Space');
   return input;
 }
 

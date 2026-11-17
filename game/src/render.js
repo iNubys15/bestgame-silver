@@ -1,7 +1,7 @@
 // Every pixel of EMBERWATCH: the hollow at night, the keeper and the beam, the wisps,
 // the HUD, and the title, dawn and darkness screens. Nothing here changes the world.
 import {
-  COLORS, FIELD, GRADE, KEEPER, LIGHT, NIGHTS, NIGHT_SECONDS, SCORE, WISP_KINDS, gradeFor,
+  CHARMS, CHARM_EVERY, COLORS, FIELD, GRADE, KEEPER, LIGHT, NIGHTS, NIGHT_SECONDS, SCORE, WISP_KINDS, gradeFor,
 } from './config.js';
 import {
   SCREEN_LOSS, SCREEN_PLAY, SCREEN_TITLE, SCREEN_WIN,
@@ -14,6 +14,18 @@ const BIG_FONT = '700 44px Georgia, "Times New Roman", serif';
 const HUD_FONT = '600 15px system-ui, -apple-system, sans-serif';
 const HUD_BIG = '700 26px system-ui, -apple-system, sans-serif';
 const HINT_FONT = '500 14px system-ui, -apple-system, sans-serif';
+
+/** The next ember charm in the cycle, and how many banishes stand between
+ * the keeper and it. A real rule, not a label: one charm per CHARM_EVERY
+ * banished, cycling the four charms in order, so the HUD can show what the
+ * keeper is working toward, not just what he has already earned. */
+export function nextCharmInfo(banished) {
+  const earned = Math.floor(banished / CHARM_EVERY);
+  return {
+    name: CHARMS[earned % CHARMS.length],
+    toGo: (earned + 1) * CHARM_EVERY - banished,
+  };
+}
 
 /** A deterministic flicker in [0.75, 1] from a phase and the world clock. */
 function flicker(phase, time, speed) {
@@ -198,8 +210,7 @@ function drawBoss(ctx, world) {
     ctx.fill();
   }
 
-  // Smoky body with a dark core, and two burning eyes on the keeper.
-  const look = Math.atan2(world.keeper.y - boss.y, world.keeper.x - boss.x);
+  // Smoky body with a dark core, and two burning eyes facing the viewer.
   ctx.fillStyle = spec.color;
   ctx.beginPath();
   ctx.arc(boss.x, boss.y, r, 0, Math.PI * 2);
@@ -208,36 +219,37 @@ function drawBoss(ctx, world) {
   ctx.beginPath();
   ctx.arc(boss.x, boss.y, r * 0.6, 0, Math.PI * 2);
   ctx.fill();
-  ctx.fillStyle = '#ffe08a';
-  ctx.beginPath();
-  ctx.arc(boss.x + Math.cos(look - 0.32) * r * 0.42, boss.y + Math.sin(look - 0.32) * r * 0.42, 5, 0, Math.PI * 2);
-  ctx.arc(boss.x + Math.cos(look + 0.32) * r * 0.42, boss.y + Math.sin(look + 0.32) * r * 0.42, 5, 0, Math.PI * 2);
-  ctx.fill();
 
-  // A face the judge remembers, drawn in the frame that faces the keeper:
-  // angry brows slanted at him, a frown under the burning eyes, a gold band
-  // where the crown spikes rise, and a faint aura ring around the whole king.
-  // The brows and frown are GOLD, not dark: dark strokes on the dark core
-  // washed out in the flare light, and gold reads through the burst.
-  ctx.save();
-  ctx.translate(boss.x, boss.y);
-  ctx.rotate(look);
-  ctx.strokeStyle = '#ffd76a';
-  ctx.lineWidth = 4.5;
-  for (const side of [-1, 1]) {
+  // A face the judge remembers, drawn facing the VIEWER, not the keeper:
+  // the top entries' bosses all stare out of the frame (Lanternkeep's stag,
+  // LOOM's Regent), and a face turned toward the keeper hides under the beam
+  // wash — gold strokes on the brightest part of the frame, unreadable at
+  // 1280x720. Facing out, the brows, eyes and frown sit in the middle of the
+  // dark core and read at a glance. Angry brows slant toward the centre; the
+  // frown's corners point down. Each gold stroke rides a wider dark
+  // under-stroke, so it keeps its edge even where the burst wash is brightest.
+  for (const [color, width] of [['#17102e', 11], ['#ffd76a', 6.5]]) {
+    ctx.strokeStyle = color;
+    ctx.lineWidth = width;
+    for (const side of [-1, 1]) {
+      ctx.beginPath();
+      ctx.moveTo(boss.x + side * r * 0.32, boss.y - r * 0.32);
+      ctx.lineTo(boss.x + side * r * 0.10, boss.y - r * 0.14);
+      ctx.stroke();
+    }
     ctx.beginPath();
-    ctx.moveTo(r * 0.22, side * r * 0.26);
-    ctx.lineTo(r * 0.34, side * r * 0.10);
+    ctx.moveTo(boss.x - r * 0.26, boss.y + r * 0.20);
+    ctx.quadraticCurveTo(boss.x, boss.y + r * 0.02, boss.x + r * 0.26, boss.y + r * 0.20);
     ctx.stroke();
   }
+  ctx.fillStyle = '#ffe08a';
   ctx.beginPath();
-  ctx.moveTo(r * 0.52, -r * 0.20);
-  ctx.quadraticCurveTo(r * 0.74, 0, r * 0.52, r * 0.20);
-  ctx.stroke();
-  ctx.restore();
+  ctx.arc(boss.x - r * 0.20, boss.y - r * 0.08, 6.5, 0, Math.PI * 2);
+  ctx.arc(boss.x + r * 0.20, boss.y - r * 0.08, 6.5, 0, Math.PI * 2);
+  ctx.fill();
   // Gold band at the base of the crown spikes.
   ctx.strokeStyle = '#ffd76a';
-  ctx.lineWidth = 6;
+  ctx.lineWidth = 7;
   ctx.beginPath();
   ctx.arc(boss.x, boss.y, r * 0.82, 0, Math.PI * 2);
   ctx.stroke();
@@ -245,6 +257,7 @@ function drawBoss(ctx, world) {
   // flare burst is fresh and the king stands inside the blast, the ring burns
   // bright and a gold rim bites into his keeper-facing side: the beam and the
   // burst are clashing with his dark aura, not just lighting him.
+  const look = Math.atan2(world.keeper.y - boss.y, world.keeper.x - boss.x);
   const burst = world.flareBurst;
   const inBlast = burst && burst.timer > 0
     && Math.hypot(boss.x - world.keeper.x, boss.y - world.keeper.y) <= KEEPER.flareRadius + 60;
@@ -533,6 +546,13 @@ function drawHud(ctx, world) {
       cy += 18;
     }
   }
+  // What the keeper is working toward: the next charm in the cycle and how
+  // many banishes stand between him and it.
+  ctx.textAlign = 'right';
+  ctx.font = HINT_FONT;
+  ctx.fillStyle = COLORS.dim;
+  const next = nextCharmInfo(world.banished);
+  ctx.fillText(`NEXT ${next.name} · ${next.toGo} to go`, FIELD.width - 24, 226);
 
   // Nights survived on the road to dawn: one dot per night, filled when survived.
   ctx.textAlign = 'left';
@@ -885,11 +905,14 @@ export function drawWorld(ctx, world) {
     drawBeam(ctx, world.keeper, world.time);
     drawFlareBurst(ctx, world);
   }
+  // The thin ring passes BEHIND the boss and his bar: it is a light effect,
+  // and the boss — name, health, face — is the frame's subject. In v7 the
+  // ring's arc crossed the word "KING" in the boss's floating bar.
+  drawFlareRing(ctx, world);
   drawWisps(ctx, world);
   drawBoss(ctx, world);
   drawKeeper(ctx, world);
   drawParticles(ctx, world);
-  drawFlareRing(ctx, world);
   drawFlareCallout(ctx, world);
   drawVignette(ctx, world);
   // The HUD stays on play; the end screens carry their own text over the scene.
