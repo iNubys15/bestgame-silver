@@ -15,7 +15,7 @@ the ridge with the lantern raised, the king's fallen crown at his feet.
 
 - **Move** — WASD or arrow keys
 - **Aim the beam** — mouse (wisps caught in the light burn away)
-- **Flare** — Space or click (a bright burst that burns nearby wisps, costs light)
+- **Flare** — Space or click (a bright burst that burns nearby wisps, costs light; the play shot catches the burst the instant it banishes five shadows at once with the Hollow King inside the blast)
 - **Start / restart** — Enter or R
 
 Survive 5 nights to win. Each night the wisps come faster and thicker. Embers restore

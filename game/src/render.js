@@ -7,7 +7,7 @@ import {
   SCREEN_LOSS, SCREEN_PLAY, SCREEN_TITLE, SCREEN_WIN,
 } from './world.js';
 import { drawHollow } from './hollow.js';
-import { drawBeam, drawFlareRing } from './beam.js';
+import { drawBeam, drawFlareBurst, drawFlareRing } from './beam.js';
 
 const TITLE_FONT = '700 68px Georgia, "Times New Roman", serif';
 const BIG_FONT = '700 44px Georgia, "Times New Roman", serif';
@@ -24,14 +24,20 @@ function drawKeeper(ctx, world) {
   const keeper = world.keeper;
   const swing = Math.sin(world.time * 3) * 0.08;
 
+  // While a flare burst is fresh, the keeper is its source: the glow around him
+  // burns wider and brighter, so the eye finds the little hooded figure first.
+  const burst = world.flareBurst;
+  const burstStrength = burst && burst.timer > 0 ? Math.min(1, burst.timer / 0.5) : 0;
+  const glowRadius = 150 + 70 * burstStrength;
+  const glowAlpha = 0.32 + 0.4 * burstStrength;
   ctx.save();
   ctx.globalCompositeOperation = 'lighter';
-  const glow = ctx.createRadialGradient(keeper.x, keeper.y, 8, keeper.x, keeper.y, 150);
-  glow.addColorStop(0, 'rgba(255, 179, 71, 0.32)');
+  const glow = ctx.createRadialGradient(keeper.x, keeper.y, 8, keeper.x, keeper.y, glowRadius);
+  glow.addColorStop(0, `rgba(255, 179, 71, ${glowAlpha})`);
   glow.addColorStop(1, 'rgba(255, 179, 71, 0)');
   ctx.fillStyle = glow;
   ctx.beginPath();
-  ctx.arc(keeper.x, keeper.y, 150, 0, Math.PI * 2);
+  ctx.arc(keeper.x, keeper.y, glowRadius, 0, Math.PI * 2);
   ctx.fill();
   ctx.restore();
 
@@ -233,12 +239,26 @@ function drawBoss(ctx, world) {
   ctx.beginPath();
   ctx.arc(boss.x, boss.y, r * 0.82, 0, Math.PI * 2);
   ctx.stroke();
-  // Faint aura ring, so the king reads as the centre of the fight.
-  ctx.strokeStyle = 'rgba(201, 166, 255, 0.16)';
-  ctx.lineWidth = 3;
+  // Faint aura ring, so the king reads as the centre of the fight. While a
+  // flare burst is fresh and the king stands inside the blast, the ring burns
+  // bright and a gold rim bites into his keeper-facing side: the beam and the
+  // burst are clashing with his dark aura, not just lighting him.
+  const burst = world.flareBurst;
+  const inBlast = burst && burst.timer > 0
+    && Math.hypot(boss.x - world.keeper.x, boss.y - world.keeper.y) <= KEEPER.flareRadius + 60;
+  const burstStrength = inBlast ? Math.min(1, burst.timer / 0.5) : 0;
+  ctx.strokeStyle = `rgba(201, 166, 255, ${0.16 + 0.55 * burstStrength})`;
+  ctx.lineWidth = 3 + 3 * burstStrength;
   ctx.beginPath();
   ctx.arc(boss.x, boss.y, r * 1.9, 0, Math.PI * 2);
   ctx.stroke();
+  if (burstStrength > 0) {
+    ctx.strokeStyle = `rgba(255, 224, 138, ${0.9 * burstStrength})`;
+    ctx.lineWidth = 5;
+    ctx.beginPath();
+    ctx.arc(boss.x, boss.y, r * 1.05, look - 0.85, look + 0.85);
+    ctx.stroke();
+  }
 
   // His health bar, floating above him in the field — not hidden under a panel.
   const bw = 150;
@@ -811,6 +831,26 @@ function drawEnd(ctx, world, won) {
   ctx.globalAlpha = 1;
 }
 
+/** The flare burst's callout: the moment's payoff in plain words, with the real
+ * count the flare banished. Shown only while the burst is fresh, on the play
+ * screen, clear of the HUD panels and the boss's floating bar. */
+function drawFlareCallout(ctx, world) {
+  const burst = world.flareBurst;
+  if (!burst || burst.timer <= 0.15 || world.screen !== SCREEN_PLAY) return;
+  const alpha = Math.min(1, (burst.timer - 0.15) / 0.2);
+  ctx.save();
+  ctx.globalAlpha = alpha;
+  centerText(ctx, `FLARE BURST! ×${burst.count}`, 188, '700 44px Georgia, "Times New Roman", serif', COLORS.flame);
+  centerText(
+    ctx,
+    burst.count === 1 ? 'one shadow burned at once' : `${burst.count} shadows burned at once`,
+    212,
+    HINT_FONT,
+    COLORS.paper,
+  );
+  ctx.restore();
+}
+
 /** Draw one frame of the world into the canvas context, letterboxed to the field. */
 export function drawWorld(ctx, world) {
   ctx.save();
@@ -822,12 +862,14 @@ export function drawWorld(ctx, world) {
   drawEmbers(ctx, world);
   if (world.screen === SCREEN_PLAY) {
     drawBeam(ctx, world.keeper, world.time);
+    drawFlareBurst(ctx, world);
   }
   drawWisps(ctx, world);
   drawBoss(ctx, world);
   drawKeeper(ctx, world);
   drawParticles(ctx, world);
   drawFlareRing(ctx, world);
+  drawFlareCallout(ctx, world);
   drawVignette(ctx, world);
   // The HUD stays on play; the end screens carry their own text over the scene.
   if (world.screen === SCREEN_PLAY) {

@@ -65,6 +65,10 @@ export function createWorld(seed) {
     shake: 0,
     flash: 0,
     flareRing: 0,
+    // The last flare's burst: how fresh it is, and how many shadows it burned.
+    // The render draws the flash and the "FLARE BURST!" callout from this, so the
+    // play shot can stage the exact moment a flare detonates.
+    flareBurst: { timer: 0, count: 0 },
   };
 }
 
@@ -204,6 +208,7 @@ export function stepWorld(world, input, dt, audio) {
   if (world.shake > 0) world.shake -= dt;
   if (world.flash > 0) world.flash -= dt;
   if (world.flareRing > 0) world.flareRing -= dt;
+  if (world.flareBurst.timer > 0) world.flareBurst.timer -= dt;
   stepParticles(world, dt);
 
   if (world.screen === SCREEN_TITLE) {
@@ -308,19 +313,25 @@ export function stepWorld(world, input, dt, audio) {
     }
   }
 
-  // A flare burns everything close, for light.
+  // A flare burns everything close, for light. The burst is recorded with the
+  // number of shadows it actually banished, so the render can announce it.
   if (wasPressed(input, 'Space') || input.clicked) {
     if (tryFlare(world.keeper, world.light)) {
       world.light -= KEEPER.flareCost;
       world.flareRing = 0.35;
+      let flareKills = 0;
       if (audio) audio.flare();
       for (let i = world.wisps.length - 1; i >= 0; i -= 1) {
         const wisp = world.wisps[i];
         if (Math.hypot(wisp.x - world.keeper.x, wisp.y - world.keeper.y) <= KEEPER.flareRadius) {
           wisp.hp -= world.keeper.flareDamage;
-          if (wisp.hp <= 0) banishWisp(world, i, audio);
+          if (wisp.hp <= 0) {
+            banishWisp(world, i, audio);
+            flareKills += 1;
+          }
         }
       }
+      world.flareBurst = { timer: 0.5, count: flareKills };
     }
   }
 

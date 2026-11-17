@@ -99,3 +99,36 @@ export function drawFlareRing(ctx, world) {
   ctx.stroke();
   ctx.restore();
 }
+
+/**
+ * The flare's burst: a radial flash centred on the keeper, brightest while the
+ * burst is fresh, with a thick bright ring riding its edge. Drawn from the real
+ * burst state the game records when a flare fires — never a free-standing effect.
+ */
+export function drawFlareBurst(ctx, world) {
+  const burst = world.flareBurst;
+  if (!burst || burst.timer <= 0) return;
+  const strength = Math.min(1, burst.timer / 0.5);
+  const keeper = world.keeper;
+  const radius = KEEPER.flareRadius * 1.1;
+
+  ctx.save();
+  ctx.globalCompositeOperation = 'lighter';
+  const flash = ctx.createRadialGradient(keeper.x, keeper.y, 10, keeper.x, keeper.y, radius);
+  flash.addColorStop(0, `rgba(255, 240, 200, ${0.55 * strength})`);
+  flash.addColorStop(0.55, `rgba(255, 200, 90, ${0.28 * strength})`);
+  flash.addColorStop(1, 'rgba(255, 179, 71, 0)');
+  ctx.fillStyle = flash;
+  ctx.beginPath();
+  ctx.arc(keeper.x, keeper.y, radius, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.restore();
+
+  ctx.save();
+  ctx.strokeStyle = `rgba(255, 240, 200, ${0.9 * strength})`;
+  ctx.lineWidth = 7;
+  ctx.beginPath();
+  ctx.arc(keeper.x, keeper.y, KEEPER.flareRadius * (1.15 - world.flareRing), 0, Math.PI * 2);
+  ctx.stroke();
+  ctx.restore();
+}

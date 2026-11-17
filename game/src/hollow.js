@@ -142,11 +142,13 @@ function drawFireflies(ctx, world) {
 
 function drawGroundGlows(ctx, world) {
   // Warm ember-light pooled on the hollow floor, fixed by index: the lower half
-  // of the frame is never empty dark, even where no wisp is burning.
-  for (let i = 0; i < 9; i += 1) {
+  // of the frame is never empty dark, even where no wisp is burning. Four more
+  // pools sit higher up, so the upper field is never empty dark either.
+  for (let i = 0; i < 13; i += 1) {
+    const upper = i >= 9;
     const x = (i * 197.3 + 60) % FIELD.width;
-    const y = 300 + ((i * 47.9) % 190);
-    const pulse = 0.16 + 0.08 * Math.sin(world.time * 0.7 + i * 2.3);
+    const y = upper ? 180 + ((i * 47.9) % 110) : 300 + ((i * 47.9) % 190);
+    const pulse = (upper ? 0.12 : 0.16) + 0.08 * Math.sin(world.time * 0.7 + i * 2.3);
     ctx.save();
     ctx.globalCompositeOperation = 'lighter';
     const glow = ctx.createRadialGradient(x, y, 1, x, y, 44);
