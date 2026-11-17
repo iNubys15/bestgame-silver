@@ -10,9 +10,9 @@ function hillNearY(x) {
 
 function drawSky(ctx) {
   const sky = ctx.createLinearGradient(0, 0, 0, FIELD.height);
-  sky.addColorStop(0, '#070912');
+  sky.addColorStop(0, '#0b0e1c');
   sky.addColorStop(0.6, COLORS.ink);
-  sky.addColorStop(1, COLORS.ground);
+  sky.addColorStop(1, '#1a2140');
   ctx.fillStyle = sky;
   ctx.fillRect(0, 0, FIELD.width, FIELD.height);
 }
@@ -24,7 +24,7 @@ function drawMoon(ctx, world) {
   ctx.save();
   ctx.globalCompositeOperation = 'lighter';
   const halo = ctx.createRadialGradient(mx, my, 6, mx, my, 64);
-  halo.addColorStop(0, 'rgba(220, 228, 255, 0.12)');
+  halo.addColorStop(0, 'rgba(220, 228, 255, 0.18)');
   halo.addColorStop(1, 'rgba(220, 228, 255, 0)');
   ctx.fillStyle = halo;
   ctx.beginPath();
@@ -33,7 +33,7 @@ function drawMoon(ctx, world) {
   ctx.restore();
   ctx.fillStyle = '#f2f6ff';
   ctx.beginPath();
-  ctx.arc(mx, my, 20, 0, Math.PI * 2);
+  ctx.arc(mx, my, 24, 0, Math.PI * 2);
   ctx.fill();
   ctx.fillStyle = 'rgba(140, 150, 190, 0.7)';
   ctx.beginPath();
@@ -49,7 +49,7 @@ function drawStars(ctx) {
   for (let i = 0; i < 70; i += 1) {
     const x = (i * 137.5) % FIELD.width;
     const y = (i * 89.3) % 220;
-    ctx.globalAlpha = 0.25 + 0.35 * Math.abs(Math.sin(i * 1.7));
+    ctx.globalAlpha = 0.3 + 0.4 * Math.abs(Math.sin(i * 1.7));
     ctx.fillRect(x, y, 1.6, 1.6);
   }
   ctx.globalAlpha = 1;
@@ -128,10 +128,10 @@ function drawDeadTrees(ctx) {
 
 function drawFireflies(ctx, world) {
   // Warm dots drifting on slow sines, always in the same place at the same time.
-  for (let i = 0; i < 26; i += 1) {
+  for (let i = 0; i < 34; i += 1) {
     const x = (i * 173.3 + Math.sin(world.time * 0.23 + i * 2.1) * 26) % FIELD.width;
     const y = 90 + ((i * 61.7) % 300) + Math.sin(world.time * 0.31 + i * 1.3) * 18;
-    ctx.globalAlpha = 0.25 + 0.45 * Math.abs(Math.sin(world.time * 0.9 + i));
+    ctx.globalAlpha = 0.35 + 0.5 * Math.abs(Math.sin(world.time * 0.9 + i));
     ctx.fillStyle = COLORS.flame;
     ctx.beginPath();
     ctx.arc(x < 0 ? x + FIELD.width : x, y, 1.8, 0, Math.PI * 2);
@@ -146,10 +146,10 @@ function drawGroundGlows(ctx, world) {
   for (let i = 0; i < 9; i += 1) {
     const x = (i * 197.3 + 60) % FIELD.width;
     const y = 300 + ((i * 47.9) % 190);
-    const pulse = 0.1 + 0.06 * Math.sin(world.time * 0.7 + i * 2.3);
+    const pulse = 0.16 + 0.08 * Math.sin(world.time * 0.7 + i * 2.3);
     ctx.save();
     ctx.globalCompositeOperation = 'lighter';
-    const glow = ctx.createRadialGradient(x, y, 1, x, y, 34);
+    const glow = ctx.createRadialGradient(x, y, 1, x, y, 44);
     glow.addColorStop(0, `rgba(255, 154, 60, ${pulse})`);
     glow.addColorStop(1, 'rgba(255, 154, 60, 0)');
     ctx.fillStyle = glow;

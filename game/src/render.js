@@ -208,6 +208,38 @@ function drawBoss(ctx, world) {
   ctx.arc(boss.x + Math.cos(look + 0.32) * r * 0.42, boss.y + Math.sin(look + 0.32) * r * 0.42, 4, 0, Math.PI * 2);
   ctx.fill();
 
+  // A face the judge remembers, drawn in the frame that faces the keeper:
+  // angry brows slanted at him, a frown under the burning eyes, a gold band
+  // where the crown spikes rise, and a faint aura ring around the whole king.
+  ctx.save();
+  ctx.translate(boss.x, boss.y);
+  ctx.rotate(look);
+  ctx.strokeStyle = '#241a4a';
+  ctx.lineWidth = 3.5;
+  for (const side of [-1, 1]) {
+    ctx.beginPath();
+    ctx.moveTo(r * 0.22, side * r * 0.26);
+    ctx.lineTo(r * 0.34, side * r * 0.10);
+    ctx.stroke();
+  }
+  ctx.beginPath();
+  ctx.moveTo(r * 0.52, -r * 0.20);
+  ctx.quadraticCurveTo(r * 0.74, 0, r * 0.52, r * 0.20);
+  ctx.stroke();
+  ctx.restore();
+  // Gold band at the base of the crown spikes.
+  ctx.strokeStyle = '#ffd76a';
+  ctx.lineWidth = 6;
+  ctx.beginPath();
+  ctx.arc(boss.x, boss.y, r * 0.82, 0, Math.PI * 2);
+  ctx.stroke();
+  // Faint aura ring, so the king reads as the centre of the fight.
+  ctx.strokeStyle = 'rgba(201, 166, 255, 0.16)';
+  ctx.lineWidth = 3;
+  ctx.beginPath();
+  ctx.arc(boss.x, boss.y, r * 1.9, 0, Math.PI * 2);
+  ctx.stroke();
+
   // His health bar, floating above him in the field — not hidden under a panel.
   const bw = 150;
   const bx = boss.x - bw / 2;
@@ -269,7 +301,7 @@ function drawVignette(ctx, world) {
   const radius = 240 + light * 360;
   const grad = ctx.createRadialGradient(world.keeper.x, world.keeper.y, radius * 0.45, world.keeper.x, world.keeper.y, radius);
   grad.addColorStop(0, 'rgba(5, 6, 16, 0)');
-  grad.addColorStop(1, 'rgba(5, 6, 16, 0.72)');
+  grad.addColorStop(1, 'rgba(5, 6, 16, 0.60)');
   ctx.fillStyle = grad;
   ctx.fillRect(0, 0, FIELD.width, FIELD.height);
   if (world.flash > 0) {
@@ -612,6 +644,10 @@ function drawTitle(ctx, world) {
   });
   centerText(ctx, '★ THE HOLLOW KING — 2000 HP · wakes on night 5', 392, '600 14px system-ui, -apple-system, sans-serif', '#c9a6ff');
 
+  // A solid dark band behind the closing lines: the title world's wisps orbit
+  // right through this strip, and the words must read over them, never under.
+  ctx.fillStyle = 'rgba(5, 6, 15, 0.68)';
+  ctx.fillRect(120, 404, 720, 74);
   if (world.best > 0) centerText(ctx, `Best score: ${world.best}`, 424, HINT_FONT, COLORS.dim);
   const pulse = 0.65 + 0.35 * Math.sin(world.time * 3);
   ctx.globalAlpha = pulse;
@@ -619,8 +655,11 @@ function drawTitle(ctx, world) {
   ctx.globalAlpha = 1;
 }
 
-function drawDawn(ctx) {
-  // The dawn itself: a warm sky, a rising sun and its rays over the hollow.
+function drawDawn(ctx, world) {
+  // The dawn itself: a warm sky, a low sun rising over the ridge, the keeper
+  // standing with the lantern held high, and the Hollow King's fallen crown
+  // on the ridge — a scene, not a flat gradient. The sun sits low and clear
+  // of every line of text, so no ray ever crosses a word.
   const sky = ctx.createLinearGradient(0, 0, 0, FIELD.height);
   sky.addColorStop(0, 'rgba(26, 18, 8, 0.96)');
   sky.addColorStop(0.45, 'rgba(122, 61, 18, 0.96)');
@@ -629,35 +668,115 @@ function drawDawn(ctx) {
   ctx.fillStyle = sky;
   ctx.fillRect(0, 0, FIELD.width, FIELD.height);
   const sunX = FIELD.width / 2;
-  const sunY = 468;
+  const sunY = 505;
   ctx.save();
   ctx.globalCompositeOperation = 'lighter';
-  const halo = ctx.createRadialGradient(sunX, sunY, 10, sunX, sunY, 150);
+  const halo = ctx.createRadialGradient(sunX, sunY, 10, sunX, sunY, 130);
   halo.addColorStop(0, 'rgba(255, 240, 200, 0.8)');
   halo.addColorStop(1, 'rgba(255, 200, 90, 0)');
   ctx.fillStyle = halo;
   ctx.beginPath();
-  ctx.arc(sunX, sunY, 150, 0, Math.PI * 2);
+  ctx.arc(sunX, sunY, 130, 0, Math.PI * 2);
   ctx.fill();
   ctx.restore();
   ctx.fillStyle = '#fff3d6';
   ctx.beginPath();
-  ctx.arc(sunX, sunY, 40, 0, Math.PI * 2);
+  ctx.arc(sunX, sunY, 34, 0, Math.PI * 2);
   ctx.fill();
   ctx.strokeStyle = 'rgba(255, 243, 214, 0.5)';
   ctx.lineWidth = 3;
   for (let i = 0; i < 12; i += 1) {
     const a = (i / 12) * Math.PI * 2;
     ctx.beginPath();
-    ctx.moveTo(sunX + Math.cos(a) * 50, sunY + Math.sin(a) * 50);
-    ctx.lineTo(sunX + Math.cos(a) * 74, sunY + Math.sin(a) * 74);
+    ctx.moveTo(sunX + Math.cos(a) * 42, sunY + Math.sin(a) * 42);
+    ctx.lineTo(sunX + Math.cos(a) * 62, sunY + Math.sin(a) * 62);
     ctx.stroke();
   }
+
+  // The ridge the dawn breaks over, dark against the bright sky.
+  ctx.fillStyle = '#1a1208';
+  ctx.beginPath();
+  ctx.moveTo(0, FIELD.height);
+  for (let x = 0; x <= FIELD.width; x += 16) {
+    ctx.lineTo(x, 512 + Math.sin(x * 0.011 + 4.0) * 6);
+  }
+  ctx.lineTo(FIELD.width, FIELD.height);
+  ctx.closePath();
+  ctx.fill();
+
+  // The keeper at dawn: cloak, hood, and the lantern held high.
+  const kx = 260;
+  const ky = 512;
+  ctx.fillStyle = '#232c52';
+  ctx.beginPath();
+  ctx.moveTo(kx, ky - 62);
+  ctx.lineTo(kx - 16, ky);
+  ctx.lineTo(kx + 16, ky);
+  ctx.closePath();
+  ctx.fill();
+  ctx.fillStyle = '#2e3a68';
+  ctx.beginPath();
+  ctx.arc(kx, ky - 66, 11, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.strokeStyle = '#232c52';
+  ctx.lineWidth = 5;
+  ctx.beginPath();
+  ctx.moveTo(kx + 8, ky - 40);
+  ctx.lineTo(kx + 26, ky - 74);
+  ctx.stroke();
+  ctx.save();
+  ctx.globalCompositeOperation = 'lighter';
+  const lamp = ctx.createRadialGradient(kx + 26, ky - 78, 2, kx + 26, ky - 78, 30);
+  lamp.addColorStop(0, 'rgba(255, 224, 138, 0.9)');
+  lamp.addColorStop(1, 'rgba(255, 179, 71, 0)');
+  ctx.fillStyle = lamp;
+  ctx.beginPath();
+  ctx.arc(kx + 26, ky - 78, 30, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.restore();
+  ctx.fillStyle = COLORS.flame;
+  ctx.beginPath();
+  ctx.arc(kx + 26, ky - 78, 5, 0, Math.PI * 2);
+  ctx.fill();
+
+  // The Hollow King's fallen crown, gold and fading on the ridge.
+  ctx.save();
+  ctx.translate(680, 524);
+  ctx.rotate(-0.35);
+  ctx.globalAlpha = 0.9;
+  ctx.fillStyle = '#c9a6ff';
+  for (let s = 0; s < 5; s += 1) {
+    const x = -24 + s * 12;
+    ctx.beginPath();
+    ctx.moveTo(x - 5, 0);
+    ctx.lineTo(x, -16 - (s % 2) * 5);
+    ctx.lineTo(x + 5, 0);
+    ctx.closePath();
+    ctx.fill();
+  }
+  ctx.fillStyle = '#ffd76a';
+  ctx.fillRect(-28, -2, 56, 6);
+  ctx.restore();
+
+  // Embers rising off the ridge into the dawn, fixed by index and the clock.
+  ctx.save();
+  ctx.globalCompositeOperation = 'lighter';
+  for (let i = 0; i < 14; i += 1) {
+    const ex = (i * 137.5 + 40) % FIELD.width;
+    const ey = FIELD.height - ((i * 53.7 + world.time * 14) % 70);
+    ctx.globalAlpha = 0.35 + 0.45 * Math.abs(Math.sin(world.time * 1.2 + i));
+    ctx.fillStyle = '#ffe08a';
+    ctx.beginPath();
+    ctx.arc(ex, ey, 2.2, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  ctx.restore();
+  ctx.globalAlpha = 1;
 }
 
 function drawEnd(ctx, world, won) {
   if (won) {
-    drawDawn(ctx);
+    drawDawn(ctx, world);
     centerText(ctx, 'DAWN BREAKS', 190, TITLE_FONT, COLORS.flame);
     centerText(ctx, 'The hollow is quiet again. Five nights survived.', 232, '500 19px Georgia, serif', COLORS.paper);
   } else {

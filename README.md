@@ -7,7 +7,9 @@
 A lantern-keeper arcade game for the [make.fun best-game-01](https://make.fun/bounty/best-game-01) bounty.
 You are the keeper of the last lantern in a dark hollow. Light is your weapon and your life:
 burn the shadow wisps with your beam, gather fallen embers to feed the flame, and survive
-all five nights until dawn breaks. When the light dies, the dark takes the hollow.
+all five nights until dawn breaks. When the light dies, the dark takes the hollow. The
+Hollow King wears a crown and a frown, and the dawn screen shows the keeper standing on
+the ridge with the lantern raised, the king's fallen crown at his feet.
 
 ## How to play
 
