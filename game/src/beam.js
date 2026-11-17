@@ -19,7 +19,7 @@ export function drawBeam(ctx, keeper, time) {
   // A faint wide halo around the whole cone, so the light dominates the dark.
   const haloHalf = half * 1.5;
   const halo = ctx.createLinearGradient(keeper.x, keeper.y, tipX, tipY);
-  halo.addColorStop(0, 'rgba(255, 179, 71, 0.14)');
+  halo.addColorStop(0, 'rgba(255, 179, 71, 0.18)');
   halo.addColorStop(1, 'rgba(255, 179, 71, 0)');
   ctx.fillStyle = halo;
   ctx.beginPath();
@@ -31,7 +31,7 @@ export function drawBeam(ctx, keeper, time) {
 
   // Wide soft cone.
   const wash = ctx.createLinearGradient(keeper.x, keeper.y, tipX, tipY);
-  wash.addColorStop(0, 'rgba(255, 179, 71, 0.46)');
+  wash.addColorStop(0, 'rgba(255, 179, 71, 0.55)');
   wash.addColorStop(1, 'rgba(255, 179, 71, 0)');
   ctx.fillStyle = wash;
   ctx.beginPath();
@@ -44,7 +44,7 @@ export function drawBeam(ctx, keeper, time) {
   // Bright inner core, half as wide.
   const coreHalf = half * 0.5;
   const core = ctx.createLinearGradient(keeper.x, keeper.y, tipX, tipY);
-  core.addColorStop(0, 'rgba(255, 224, 138, 0.65)');
+  core.addColorStop(0, 'rgba(255, 224, 138, 0.75)');
   core.addColorStop(1, 'rgba(255, 224, 138, 0)');
   ctx.fillStyle = core;
   ctx.beginPath();
@@ -55,8 +55,8 @@ export function drawBeam(ctx, keeper, time) {
   ctx.fill();
 
   // Hot centre line.
-  ctx.strokeStyle = 'rgba(255, 240, 200, 0.75)';
-  ctx.lineWidth = 2.5;
+  ctx.strokeStyle = 'rgba(255, 240, 200, 0.85)';
+  ctx.lineWidth = 3;
   ctx.beginPath();
   ctx.moveTo(keeper.x, keeper.y);
   ctx.lineTo(tipX, tipY);

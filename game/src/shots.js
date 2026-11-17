@@ -7,7 +7,7 @@ import {
 } from './world.js';
 
 const START_SECONDS = 5;
-const PLAY_SECONDS = 186;
+const PLAY_SECONDS = 176;
 const LIMIT_SECONDS = 600;
 
 function blankInput() {
@@ -33,8 +33,10 @@ function nearest(list, x, y) {
 }
 
 /**
- * A skilled pilot: aim the beam at the nearest wisp, chase embers when the light runs
- * low, back away from a wisp that gets too close, and flare when crowded.
+ * A skilled pilot: aim the beam at the nearest wisp — the Hollow King first, when
+ * he is close enough to burn — chase embers when the light runs low, back away from
+ * a wisp that gets too close, flare when crowded, and drift back to the middle of
+ * the hollow when nothing is near, so the fight stays where the eye is.
  */
 function skilledInput(world) {
   const input = blankInput();
@@ -44,17 +46,28 @@ function skilledInput(world) {
   let tx = keeper.x;
   let ty = keeper.y;
 
-  if (wisp.item) {
-    input.mouse.x = wisp.item.x;
-    input.mouse.y = wisp.item.y;
-    if (wisp.dist < 90) {
-      tx = keeper.x + (keeper.x - wisp.item.x);
-      ty = keeper.y + (keeper.y - wisp.item.y);
+  // The boss is the prize target on the final night: burn him when he closes in.
+  let target = wisp.item;
+  if (world.boss && Math.hypot(world.boss.x - keeper.x, world.boss.y - keeper.y) < 160) {
+    target = world.boss;
+  }
+  const targetDist = target ? Math.hypot(target.x - keeper.x, target.y - keeper.y) : Infinity;
+
+  if (target) {
+    input.mouse.x = target.x;
+    input.mouse.y = target.y;
+    if (targetDist < 90) {
+      tx = keeper.x + (keeper.x - target.x);
+      ty = keeper.y + (keeper.y - target.y);
     }
   }
-  if (world.light < 65 && ember.item) {
+  let fleeing = targetDist < 90;
+  if (!fleeing && world.light < 65 && ember.item) {
     tx = ember.item.x;
     ty = ember.item.y;
+  } else if (!fleeing && (!target || targetDist >= 130)) {
+    tx = FIELD.width / 2;
+    ty = FIELD.height / 2;
   }
   const dx = tx - keeper.x;
   const dy = ty - keeper.y;
@@ -65,7 +78,7 @@ function skilledInput(world) {
   for (const other of world.wisps) {
     if (Math.hypot(other.x - keeper.x, other.y - keeper.y) < 180) near += 1;
   }
-  if (near >= 3 || (wisp.item && wisp.dist < 55)) input.pressed.add('Space');
+  if (near >= 3 || (target && targetDist < 55)) input.pressed.add('Space');
   return input;
 }
 

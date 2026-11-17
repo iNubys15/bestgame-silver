@@ -48,9 +48,9 @@ export const WISP = {
   radius: 14,
   spawnStart: 1.05,
   spawnEnd: 0.4,
-  maxAlive: 28,
-  budgetBase: 16,
-  budgetPerNight: 6,
+  maxAlive: 34,
+  budgetBase: 24,
+  budgetPerNight: 8,
 };
 
 /** Three kinds of shadow, each with its own look, speed and threat. */
@@ -76,7 +76,7 @@ export const WISP_KINDS = {
     color: '#9d7bff', core: '#1c1440', label: 'Glooms',
   },
   boss: {
-    hp: 300, speed: 18, radius: 34, score: 150, touch: 30, wobble: 0.2,
+    hp: 1000, speed: 18, radius: 34, score: 250, touch: 30, wobble: 0.2,
     color: '#c9a6ff', core: '#241a4a', label: 'The Hollow King',
   },
 };
@@ -95,6 +95,23 @@ export const EMBER = {
 
 export const SCORE = {
   wisp: 10,
-  comboWindow: 2.0,
+  comboWindow: 3.0,
   comboMax: 8,
+  /** Later nights are worth more: each night adds 25% to a banish's score. */
+  nightBonusPerNight: 0.25,
 };
+
+/** A run's grade, from its score: the judge sees the same line on the HUD. */
+export const GRADE = [
+  { min: 20000, label: 'S' },
+  { min: 12000, label: 'A' },
+  { min: 6000, label: 'B' },
+  { min: 0, label: 'C' },
+];
+
+export function gradeFor(score) {
+  for (const grade of GRADE) {
+    if (score >= grade.min) return grade.label;
+  }
+  return 'C';
+}

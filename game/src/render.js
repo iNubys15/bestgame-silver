@@ -1,7 +1,7 @@
 // Every pixel of EMBERWATCH: the hollow at night, the keeper and the beam, the wisps,
 // the HUD, and the title, dawn and darkness screens. Nothing here changes the world.
 import {
-  COLORS, FIELD, KEEPER, LIGHT, NIGHTS, NIGHT_SECONDS, WISP_KINDS,
+  COLORS, FIELD, GRADE, KEEPER, LIGHT, NIGHTS, NIGHT_SECONDS, SCORE, WISP_KINDS, gradeFor,
 } from './config.js';
 import {
   SCREEN_LOSS, SCREEN_PLAY, SCREEN_TITLE, SCREEN_WIN,
@@ -215,15 +215,61 @@ function drawVignette(ctx, world) {
   }
 }
 
+/** A small map of the hollow, bottom right: keeper, wisps, boss and embers. */
+function drawMinimap(ctx, world) {
+  const x = 780;
+  const y = 396;
+  const w = 168;
+  const h = 94;
+  const sx = w / FIELD.width;
+  const sy = h / FIELD.height;
+  ctx.fillStyle = 'rgba(5, 6, 15, 0.55)';
+  ctx.fillRect(x, y, w, h);
+  ctx.strokeStyle = 'rgba(255, 243, 214, 0.25)';
+  ctx.lineWidth = 1;
+  ctx.strokeRect(x + 0.5, y + 0.5, w - 1, h - 1);
+  ctx.font = '600 10px system-ui, -apple-system, sans-serif';
+  ctx.textAlign = 'left';
+  ctx.fillStyle = COLORS.dim;
+  ctx.fillText('MAP', x + 6, y + 12);
+  for (const ember of world.embers) {
+    ctx.fillStyle = COLORS.flame;
+    ctx.beginPath();
+    ctx.arc(x + ember.x * sx, y + ember.y * sy, 1.5, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  for (const wisp of world.wisps) {
+    const spec = WISP_KINDS[wisp.kind];
+    ctx.fillStyle = spec.color;
+    ctx.beginPath();
+    ctx.arc(x + wisp.x * sx, y + wisp.y * sy, wisp.kind === 'boss' ? 5 : 2.5, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  if (world.boss) {
+    ctx.strokeStyle = '#c9a6ff';
+    ctx.beginPath();
+    ctx.arc(x + world.boss.x * sx, y + world.boss.y * sy, 8, 0, Math.PI * 2);
+    ctx.stroke();
+  }
+  ctx.fillStyle = '#ffffff';
+  ctx.beginPath();
+  ctx.arc(x + world.keeper.x * sx, y + world.keeper.y * sy, 3, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.strokeStyle = COLORS.flame;
+  ctx.beginPath();
+  ctx.arc(x + world.keeper.x * sx, y + world.keeper.y * sy, 5, 0, Math.PI * 2);
+  ctx.stroke();
+}
+
 function drawHud(ctx, world) {
   ctx.textAlign = 'left';
   ctx.textBaseline = 'alphabetic';
 
   // Dark panels behind the HUD clusters, so the text reads over the beam.
   ctx.fillStyle = 'rgba(5, 6, 15, 0.55)';
-  ctx.fillRect(12, 18, 280, 164);
-  ctx.fillRect(305, 18, 350, 108);
-  ctx.fillRect(780, 18, 168, 186);
+  ctx.fillRect(12, 18, 280, 196);
+  ctx.fillRect(305, 18, 350, 126);
+  ctx.fillRect(780, 18, 168, 214);
   if (world.screen === SCREEN_PLAY) ctx.fillRect(300, 506, 420, 28);
 
   // Light meter, top left.
@@ -263,6 +309,8 @@ function drawHud(ctx, world) {
   ctx.fillText('Shades steal light · Glooms endure', 24, 156);
   ctx.fillStyle = COLORS.dim;
   ctx.fillText(`BANISHED ${world.banished}`, 24, 176);
+  ctx.fillStyle = COLORS.flame;
+  ctx.fillText(`EMBERS ${world.embersGathered}`, 24, 194);
 
   // Night, top centre, with its progress and the stakes.
   ctx.textAlign = 'center';
@@ -290,6 +338,17 @@ function drawHud(ctx, world) {
     ctx.fillRect(FIELD.width / 2 - 110, 106, 220 * Math.max(0, boss.hp / boss.maxHp), 8);
   }
 
+  // How long until dawn: the nights left, plus the rest of this one.
+  const remaining = Math.max(0, world.intermission
+    + (NIGHTS - world.night) * NIGHT_SECONDS
+    + (world.intermission > 0 ? NIGHT_SECONDS : NIGHT_SECONDS - world.nightTime));
+  ctx.font = HINT_FONT;
+  ctx.fillStyle = COLORS.dim;
+  ctx.fillText(
+    `DAWN IN ${Math.floor(remaining / 60)}:${String(Math.floor(remaining % 60)).padStart(2, '0')}`,
+    FIELD.width / 2, 132,
+  );
+
   // Score, top right.
   ctx.textAlign = 'right';
   ctx.font = HUD_BIG;
@@ -297,28 +356,30 @@ function drawHud(ctx, world) {
   ctx.fillText(`${world.score}`, FIELD.width - 24, 40);
   ctx.font = HUD_FONT;
   ctx.fillStyle = COLORS.dim;
-  ctx.fillText(`BEST ${world.best}`, FIELD.width - 24, 60);
+  ctx.fillText(`BEST ${world.best}`, FIELD.width - 24, 62);
+  ctx.fillStyle = COLORS.flame;
+  ctx.fillText(`GRADE ${gradeFor(world.score)}`, FIELD.width - 24, 84);
   if (world.combo >= 2) {
     ctx.fillStyle = COLORS.flame;
     ctx.font = HUD_FONT;
-    ctx.fillText(`COMBO x${Math.max(1, world.combo)}`, FIELD.width - 24, 82);
+    ctx.fillText(`COMBO x${Math.max(1, world.combo)}`, FIELD.width - 24, 106);
     ctx.fillStyle = 'rgba(255, 224, 138, 0.35)';
-    ctx.fillRect(FIELD.width - 104, 88, 80 * (world.comboTimer / 2), 4);
+    ctx.fillRect(FIELD.width - 104, 112, 80 * (world.comboTimer / SCORE.comboWindow), 4);
   }
 
   // Ember charms earned this run, one per 20 banished wisps.
   ctx.textAlign = 'right';
   ctx.font = HUD_FONT;
   ctx.fillStyle = COLORS.paper;
-  ctx.fillText('CHARMS', FIELD.width - 24, 118);
+  ctx.fillText('CHARMS', FIELD.width - 24, 134);
   ctx.font = HINT_FONT;
   if (world.charms.length === 0) {
     ctx.fillStyle = COLORS.dim;
-    ctx.fillText('banish 20 wisps to earn one', FIELD.width - 24, 138);
+    ctx.fillText('banish 20 wisps to earn one', FIELD.width - 24, 154);
   } else {
     const charmCounts = {};
     for (const charm of world.charms) charmCounts[charm] = (charmCounts[charm] || 0) + 1;
-    let cy = 138;
+    let cy = 154;
     for (const charm of ['Wide Beam', 'Hot Flare', 'Deep Well', 'Swift Feet']) {
       if (!charmCounts[charm]) continue;
       ctx.fillStyle = COLORS.flame;
@@ -336,6 +397,7 @@ function drawHud(ctx, world) {
     ctx.fillText('SPACE flare', FIELD.width / 2 - 150, FIELD.height - 18);
     ctx.fillStyle = COLORS.dim;
     ctx.fillText('WASD move  ·  mouse aims the light  ·  R restart', FIELD.width / 2 + 90, FIELD.height - 18);
+    drawMinimap(ctx, world);
   }
 
   // Night banner.
@@ -359,6 +421,10 @@ function drawOverlay(ctx, alpha, color) {
 function centerText(ctx, text, y, font, color) {
   ctx.font = font;
   ctx.textAlign = 'center';
+  // A dark outline first, so the words read even over the dawn sun.
+  ctx.lineWidth = 5;
+  ctx.strokeStyle = 'rgba(5, 6, 15, 0.55)';
+  ctx.strokeText(text, FIELD.width / 2, y);
   ctx.fillStyle = color;
   ctx.fillText(text, FIELD.width / 2, y);
 }

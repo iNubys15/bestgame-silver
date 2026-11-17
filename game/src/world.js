@@ -56,6 +56,7 @@ export function createWorld(seed) {
     spawnTimer: 1.2,
     spawnLeft: nightBudget(1),
     banished: 0,
+    embersGathered: 0,
     boss: null,
     charms: [],
     drainRate: LIGHT.drainPerSecond,
@@ -135,7 +136,11 @@ function banishWisp(world, index, audio) {
   }
   world.combo = Math.min(world.combo + 1, SCORE.comboMax);
   world.comboTimer = SCORE.comboWindow;
-  const gained = WISP_KINDS[wisp.kind].score * Math.max(1, world.combo);
+  // Later nights pay more: a night-5 banish is worth twice a night-1 one.
+  const gained = Math.round(
+    WISP_KINDS[wisp.kind].score * Math.max(1, world.combo)
+    * (1 + SCORE.nightBonusPerNight * (world.night - 1)),
+  );
   world.score += gained;
   burst(world, wisp.x, wisp.y, '#b9a8ff', 14, 130);
   burst(world, wisp.x, wisp.y, '#ffe08a', 6, 80);
@@ -289,12 +294,14 @@ export function stepWorld(world, input, dt, audio) {
     world.embers.push(createEmber(world.rng));
   }
 
-  // The beam burns every wisp it catches.
+  // The beam burns every wisp it catches, and holding the beam on a target
+  // holds the combo: the light rewards a keeper who never lets go.
   for (let i = world.wisps.length - 1; i >= 0; i -= 1) {
     const wisp = world.wisps[i];
     if (inBeam(world.keeper, wisp.x, wisp.y)) {
       wisp.hp -= KEEPER.beamDps * dt;
       wisp.burn = 0.12;
+      if (world.combo > 0) world.comboTimer = SCORE.comboWindow;
       if (wisp.hp <= 0) banishWisp(world, i, audio);
     }
   }
@@ -337,6 +344,7 @@ export function stepWorld(world, input, dt, audio) {
     const dist = Math.hypot(ember.x - world.keeper.x, ember.y - world.keeper.y);
     if (dist < EMBER.pickupRadius) {
       world.embers.splice(i, 1);
+      world.embersGathered += 1;
       world.light = Math.min(LIGHT.max, world.light + LIGHT.emberRestore);
       world.score += EMBER.score;
       burst(world, ember.x, ember.y, '#ffe08a', 10, 90);
