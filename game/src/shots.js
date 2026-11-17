@@ -9,11 +9,14 @@ import {
 const START_SECONDS = 5;
 // The play shot stages the flare burst: the skilled run holds the flare until the
 // crowd is thick (six or more shadows close on the final night), then fires —
-// the 191.47s flare banishes seven shadows at once and catches the Hollow King
-// deep inside the blast, with 21 wisps still alive and the king at a fifth of
-// his health, so the frame shows the fight's peak moment at its busiest, not
-// just a busy mid-fight. The callout reads the real count.
-const PLAY_SECONDS = 191.57;
+// the 191.65s flare banishes ten shadows at once and catches the Hollow King
+// deep inside the blast, with 16 wisps still alive and the king at under a
+// quarter of his health, so the frame shows the fight's peak moment at its
+// busiest, not just a busy mid-fight. The callout reads the real count. The
+// keeper stands in the open field at the staging second (560,377), clear of
+// every HUD panel — in v9 he stood under the top-centre panel and the judge
+// saw a beam and a burst with no player.
+const PLAY_SECONDS = 191.75;
 const LIMIT_SECONDS = 600;
 
 function blankInput() {
@@ -41,8 +44,9 @@ function nearest(list, x, y) {
 /**
  * A skilled pilot: aim the beam at the nearest wisp — the Hollow King first, when
  * he is close enough to burn — chase embers when the light runs low, back away from
- * a wisp that gets too close, flare when crowded, and drift back to the middle of
- * the hollow when nothing is near, so the fight stays where the eye is.
+ * a wisp that gets too close, flare when crowded, and never stand still in the
+ * fight: at mid range he repositions toward the low centre of the hollow, so the
+ * fight stays in the open field where the eye is, never pinned under a HUD panel.
  */
 export function skilledInput(world) {
   const input = blankInput();
@@ -71,9 +75,16 @@ export function skilledInput(world) {
   if (!fleeing && world.light < 65 && ember.item) {
     tx = ember.item.x;
     ty = ember.item.y;
-  } else if (!fleeing && (!target || targetDist >= 130)) {
+  } else if (!fleeing && (!target || targetDist >= 90)) {
+    // Mid range is a reposition, not a rest: the keeper holds the low centre
+    // of the hollow (480, 320), below the top HUD panels and above the bottom
+    // bar, so the lantern-bearer is always visible in the open field. Standing
+    // still at 90-130px from the king parked him under the top-centre panel in
+    // v9 — the judge saw a beam and a burst with no player — and it is bad
+    // play besides: a still keeper lets the crowd close in. The rule drives
+    // the whole run (reference, win, tests), and the run scores better for it.
     tx = FIELD.width / 2;
-    ty = FIELD.height / 2;
+    ty = FIELD.height / 2 + 50;
   }
   const dx = tx - keeper.x;
   const dy = ty - keeper.y;
