@@ -1,9 +1,46 @@
 // Shadow wisps: they drift in from the edges and home in on the keeper. Caught in the
-// lantern's beam they burn; touching the keeper they steal light and burst.
-import { FIELD, WISP } from './config.js';
+// lantern's beam they burn; touching the keeper they steal light and burst. Three
+// kinds keep the nights varied: slow motes, quick darts that zigzag, and big glooms
+// that take a long burn and hit hard.
+import { FIELD, WISP, WISP_KINDS } from './config.js';
 import { chance, range } from './random.js';
 
+/** Which kinds can appear on this night, and how often each one is picked. */
+function kindForNight(rng, night) {
+  const roll = rng();
+  if (night >= 3 && roll < 0.14) return 'gloom';
+  if (night >= 3 && roll < 0.30) return 'shade';
+  if (night >= 2 && roll < 0.46) return 'dart';
+  if (night >= 2 && roll < 0.60) return 'flicker';
+  return 'mote';
+}
+
+/** The Hollow King: the one boss of the final night, big and slow and hard to burn. */
+export function createBoss(rng) {
+  const spec = WISP_KINDS.boss;
+  const edge = Math.floor(rng() * 4);
+  let x;
+  let y;
+  if (edge === 0) { x = range(rng, 0, FIELD.width); y = -40; }
+  else if (edge === 1) { x = range(rng, 0, FIELD.width); y = FIELD.height + 40; }
+  else if (edge === 2) { x = -40; y = range(rng, 0, FIELD.height); }
+  else { x = FIELD.width + 40; y = range(rng, 0, FIELD.height); }
+  return {
+    kind: 'boss',
+    x,
+    y,
+    hp: spec.hp,
+    maxHp: spec.hp,
+    speed: spec.speed,
+    phase: rng() * Math.PI * 2,
+    radius: spec.radius,
+    burn: 0,
+  };
+}
+
 export function createWisp(rng, night) {
+  const kind = kindForNight(rng, night);
+  const spec = WISP_KINDS[kind];
   const edge = Math.floor(rng() * 4);
   let x;
   let y;
@@ -12,12 +49,13 @@ export function createWisp(rng, night) {
   else if (edge === 2) { x = -20; y = range(rng, 0, FIELD.height); }
   else { x = FIELD.width + 20; y = range(rng, 0, FIELD.height); }
   return {
+    kind,
     x,
     y,
-    hp: WISP.baseHp + WISP.hpPerNight * (night - 1),
-    speed: WISP.baseSpeed + WISP.speedPerNight * (night - 1),
+    hp: spec.hp + WISP.hpPerNight * (night - 1),
+    speed: spec.speed + WISP.speedPerNight * (night - 1),
     phase: rng() * Math.PI * 2,
-    radius: WISP.radius,
+    radius: spec.radius,
     burn: 0,
   };
 }
@@ -28,13 +66,19 @@ export function spawnInterval(night, nights) {
   return WISP.spawnStart + (WISP.spawnEnd - WISP.spawnStart) * t;
 }
 
-/** Drift every wisp toward the keeper with a slow sideways wobble. */
+/** How many wisps the night sends in all, counting the ones already out. */
+export function nightBudget(night) {
+  return WISP.budgetBase + WISP.budgetPerNight * night;
+}
+
+/** Drift every wisp toward the keeper with a sideways wobble of its own kind. */
 export function stepWisps(wisps, keeper, dt, time) {
   for (const wisp of wisps) {
+    const spec = WISP_KINDS[wisp.kind];
     const dx = keeper.x - wisp.x;
     const dy = keeper.y - wisp.y;
     const len = Math.hypot(dx, dy) || 1;
-    const wobble = Math.sin(time * 1.7 + wisp.phase) * 0.55;
+    const wobble = Math.sin(time * 1.7 + wisp.phase) * spec.wobble;
     const px = -dy / len;
     const py = dx / len;
     wisp.x += (dx / len * wisp.speed + px * wobble * wisp.speed * 0.5) * dt;

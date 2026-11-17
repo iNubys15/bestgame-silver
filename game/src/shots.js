@@ -7,7 +7,7 @@ import {
 } from './world.js';
 
 const START_SECONDS = 5;
-const PLAY_SECONDS = 34;
+const PLAY_SECONDS = 186;
 const LIMIT_SECONDS = 600;
 
 function blankInput() {

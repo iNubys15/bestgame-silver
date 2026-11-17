@@ -1,11 +1,13 @@
 // Every pixel of EMBERWATCH: the hollow at night, the keeper and the beam, the wisps,
 // the HUD, and the title, dawn and darkness screens. Nothing here changes the world.
 import {
-  COLORS, FIELD, KEEPER, LIGHT, NIGHTS, NIGHT_SECONDS,
+  COLORS, FIELD, KEEPER, LIGHT, NIGHTS, NIGHT_SECONDS, WISP_KINDS,
 } from './config.js';
 import {
   SCREEN_LOSS, SCREEN_PLAY, SCREEN_TITLE, SCREEN_WIN,
 } from './world.js';
+import { drawHollow } from './hollow.js';
+import { drawBeam, drawFlareRing } from './beam.js';
 
 const TITLE_FONT = '700 68px Georgia, "Times New Roman", serif';
 const BIG_FONT = '700 44px Georgia, "Times New Roman", serif';
@@ -18,177 +20,134 @@ function flicker(phase, time, speed) {
   return 0.875 + 0.125 * Math.sin(time * speed + phase);
 }
 
-function drawBackground(ctx, world) {
-  const sky = ctx.createLinearGradient(0, 0, 0, FIELD.height);
-  sky.addColorStop(0, '#070912');
-  sky.addColorStop(0.6, COLORS.ink);
-  sky.addColorStop(1, COLORS.ground);
-  ctx.fillStyle = sky;
-  ctx.fillRect(0, 0, FIELD.width, FIELD.height);
-
-  // Stars, fixed by index so the sky never shimmers between frames.
-  ctx.fillStyle = '#cdd5f5';
-  for (let i = 0; i < 70; i += 1) {
-    const x = (i * 137.5) % FIELD.width;
-    const y = (i * 89.3) % 220;
-    ctx.globalAlpha = 0.25 + 0.35 * Math.abs(Math.sin(i * 1.7));
-    ctx.fillRect(x, y, 1.6, 1.6);
-  }
-  ctx.globalAlpha = 1;
-
-  // Two ridges of hollow hills, drawn from sines so the horizon is never a straight line.
-  ctx.fillStyle = COLORS.hillFar;
-  ctx.beginPath();
-  ctx.moveTo(0, FIELD.height);
-  for (let x = 0; x <= FIELD.width; x += 16) {
-    ctx.lineTo(x, 400 + Math.sin(x * 0.008 + 1.2) * 26 + Math.sin(x * 0.021) * 10);
-  }
-  ctx.lineTo(FIELD.width, FIELD.height);
-  ctx.closePath();
-  ctx.fill();
-
-  ctx.fillStyle = COLORS.hillNear;
-  ctx.beginPath();
-  ctx.moveTo(0, FIELD.height);
-  for (let x = 0; x <= FIELD.width; x += 16) {
-    ctx.lineTo(x, 452 + Math.sin(x * 0.011 + 4.0) * 18 + Math.sin(x * 0.03 + 1.0) * 7);
-  }
-  ctx.lineTo(FIELD.width, FIELD.height);
-  ctx.closePath();
-  ctx.fill();
-
-  // Fireflies: warm dots drifting on slow sines, always in the same place at the same time.
-  for (let i = 0; i < 26; i += 1) {
-    const x = (i * 173.3 + Math.sin(world.time * 0.23 + i * 2.1) * 26) % FIELD.width;
-    const y = 90 + ((i * 61.7) % 300) + Math.sin(world.time * 0.31 + i * 1.3) * 18;
-    ctx.globalAlpha = 0.25 + 0.45 * Math.abs(Math.sin(world.time * 0.9 + i));
-    ctx.fillStyle = COLORS.flame;
-    ctx.beginPath();
-    ctx.arc(x < 0 ? x + FIELD.width : x, y, 1.8, 0, Math.PI * 2);
-    ctx.fill();
-  }
-  ctx.globalAlpha = 1;
-}
-
-function drawBeam(ctx, keeper) {
-  const dx = keeper.aimX - keeper.x;
-  const dy = keeper.aimY - keeper.y;
-  const aim = Math.atan2(dy, dx);
-  const len = KEEPER.beamRange;
-  const half = KEEPER.beamHalfAngle;
-  const x1 = keeper.x + Math.cos(aim - half) * len;
-  const y1 = keeper.y + Math.sin(aim - half) * len;
-  const x2 = keeper.x + Math.cos(aim + half) * len;
-  const y2 = keeper.y + Math.sin(aim + half) * len;
-  const grad = ctx.createLinearGradient(keeper.x, keeper.y, keeper.x + Math.cos(aim) * len, keeper.y + Math.sin(aim) * len);
-  grad.addColorStop(0, 'rgba(255, 179, 71, 0.40)');
-  grad.addColorStop(1, 'rgba(255, 179, 71, 0)');
-  ctx.save();
-  ctx.globalCompositeOperation = 'lighter';
-  ctx.fillStyle = grad;
-  ctx.beginPath();
-  ctx.moveTo(keeper.x, keeper.y);
-  ctx.lineTo(x1, y1);
-  ctx.lineTo(x2, y2);
-  ctx.closePath();
-  ctx.fill();
-  ctx.restore();
-}
-
 function drawKeeper(ctx, world) {
   const keeper = world.keeper;
   const swing = Math.sin(world.time * 3) * 0.08;
 
   ctx.save();
   ctx.globalCompositeOperation = 'lighter';
-  const glow = ctx.createRadialGradient(keeper.x, keeper.y, 8, keeper.x, keeper.y, 130);
-  glow.addColorStop(0, 'rgba(255, 179, 71, 0.30)');
+  const glow = ctx.createRadialGradient(keeper.x, keeper.y, 8, keeper.x, keeper.y, 150);
+  glow.addColorStop(0, 'rgba(255, 179, 71, 0.32)');
   glow.addColorStop(1, 'rgba(255, 179, 71, 0)');
   ctx.fillStyle = glow;
   ctx.beginPath();
-  ctx.arc(keeper.x, keeper.y, 130, 0, Math.PI * 2);
+  ctx.arc(keeper.x, keeper.y, 150, 0, Math.PI * 2);
   ctx.fill();
   ctx.restore();
 
-  // Cloak: a hooded figure in deep blue, facing the aim.
+  // Cloak: a hooded figure in deep blue, facing the aim, drawn larger than the
+  // collision circle so the keeper reads at a glance in a small screenshot.
   const aim = Math.atan2(keeper.aimY - keeper.y, keeper.aimX - keeper.x);
   ctx.save();
   ctx.translate(keeper.x, keeper.y);
   ctx.rotate(aim);
   ctx.fillStyle = '#232c52';
   ctx.beginPath();
-  ctx.moveTo(12, 0);
-  ctx.lineTo(-10, -11);
-  ctx.lineTo(-14, 0);
-  ctx.lineTo(-10, 11);
+  ctx.moveTo(16, 0);
+  ctx.lineTo(-13, -14);
+  ctx.lineTo(-18, 0);
+  ctx.lineTo(-13, 14);
   ctx.closePath();
   ctx.fill();
   ctx.fillStyle = '#2e3a68';
   ctx.beginPath();
-  ctx.arc(2, 0, 8, 0, Math.PI * 2);
+  ctx.arc(3, 0, 10, 0, Math.PI * 2);
   ctx.fill();
   ctx.fillStyle = COLORS.paper;
   ctx.beginPath();
-  ctx.arc(5, -2.5, 1.6, 0, Math.PI * 2);
-  ctx.arc(5, 2.5, 1.6, 0, Math.PI * 2);
+  ctx.arc(6.5, -3.2, 2, 0, Math.PI * 2);
+  ctx.arc(6.5, 3.2, 2, 0, Math.PI * 2);
   ctx.fill();
   ctx.restore();
 
   // The lantern, swinging at the keeper's side.
-  const lx = keeper.x + Math.cos(aim + Math.PI / 2 + swing) * 20;
-  const ly = keeper.y + Math.sin(aim + Math.PI / 2 + swing) * 20;
+  const lx = keeper.x + Math.cos(aim + Math.PI / 2 + swing) * 26;
+  const ly = keeper.y + Math.sin(aim + Math.PI / 2 + swing) * 26;
   ctx.save();
   ctx.globalCompositeOperation = 'lighter';
-  const lamp = ctx.createRadialGradient(lx, ly, 2, lx, ly, 26);
+  const lamp = ctx.createRadialGradient(lx, ly, 2, lx, ly, 32);
   lamp.addColorStop(0, 'rgba(255, 224, 138, 0.9)');
   lamp.addColorStop(1, 'rgba(255, 179, 71, 0)');
   ctx.fillStyle = lamp;
   ctx.beginPath();
-  ctx.arc(lx, ly, 26, 0, Math.PI * 2);
+  ctx.arc(lx, ly, 32, 0, Math.PI * 2);
   ctx.fill();
   ctx.restore();
   ctx.fillStyle = '#3a2f18';
-  ctx.fillRect(lx - 4, ly - 6, 8, 12);
+  ctx.fillRect(lx - 5, ly - 7.5, 10, 15);
   ctx.fillStyle = COLORS.flame;
   ctx.beginPath();
-  ctx.arc(lx, ly, 3.5, 0, Math.PI * 2);
+  ctx.arc(lx, ly, 4.5, 0, Math.PI * 2);
   ctx.fill();
 }
 
 function drawWisps(ctx, world) {
   for (const wisp of world.wisps) {
+    const spec = WISP_KINDS[wisp.kind];
     const burn = wisp.burn > 0;
     const breathe = 1 + 0.12 * Math.sin(world.time * 4 + wisp.phase);
     const r = wisp.radius * breathe;
     ctx.save();
     ctx.globalCompositeOperation = 'lighter';
     const glow = ctx.createRadialGradient(wisp.x, wisp.y, 2, wisp.x, wisp.y, r * 2.4);
-    glow.addColorStop(0, burn ? 'rgba(255, 240, 200, 0.5)' : 'rgba(124, 108, 255, 0.34)');
-    glow.addColorStop(1, 'rgba(124, 108, 255, 0)');
+    glow.addColorStop(0, burn ? 'rgba(255, 240, 200, 0.5)' : `${spec.color}56`);
+    glow.addColorStop(1, `${spec.color}00`);
     ctx.fillStyle = glow;
     ctx.beginPath();
     ctx.arc(wisp.x, wisp.y, r * 2.4, 0, Math.PI * 2);
     ctx.fill();
     ctx.restore();
 
+    const look = Math.atan2(world.keeper.y - wisp.y, world.keeper.x - wisp.x);
+
+    // Glooms wear a crown of spikes; darts trail a long bright streak.
+    if (wisp.kind === 'gloom') {
+      ctx.fillStyle = spec.color;
+      for (let s = 0; s < 6; s += 1) {
+        const a = (s / 6) * Math.PI * 2 + world.time * 0.4;
+        ctx.beginPath();
+        ctx.moveTo(wisp.x + Math.cos(a - 0.18) * r * 0.8, wisp.y + Math.sin(a - 0.18) * r * 0.8);
+        ctx.lineTo(wisp.x + Math.cos(a) * r * 1.5, wisp.y + Math.sin(a) * r * 1.5);
+        ctx.lineTo(wisp.x + Math.cos(a + 0.18) * r * 0.8, wisp.y + Math.sin(a + 0.18) * r * 0.8);
+        ctx.closePath();
+        ctx.fill();
+      }
+    }
+    if (wisp.kind === 'dart') {
+      ctx.strokeStyle = `${spec.color}aa`;
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      ctx.moveTo(wisp.x, wisp.y);
+      ctx.quadraticCurveTo(
+        wisp.x - Math.cos(look) * 26, wisp.y - Math.sin(look) * 26,
+        wisp.x - Math.cos(look) * 44, wisp.y - Math.sin(look) * 44,
+      );
+      ctx.stroke();
+    }
+
     // Smoky body with a dark core, and two pale eyes watching the keeper.
-    ctx.fillStyle = burn ? '#a99aff' : COLORS.wisp;
+    // Flickers blink fast, so they are hard to track at a glance.
+    const blink = wisp.kind === 'flicker'
+      ? 0.55 + 0.45 * Math.abs(Math.sin(world.time * 14 + wisp.phase))
+      : 1;
+    ctx.globalAlpha = blink;
+    ctx.fillStyle = burn ? '#a99aff' : spec.color;
     ctx.beginPath();
     ctx.arc(wisp.x, wisp.y, r, 0, Math.PI * 2);
     ctx.fill();
-    ctx.fillStyle = COLORS.wispCore;
+    ctx.fillStyle = spec.core;
     ctx.beginPath();
     ctx.arc(wisp.x, wisp.y, r * 0.55, 0, Math.PI * 2);
     ctx.fill();
-    const look = Math.atan2(world.keeper.y - wisp.y, world.keeper.x - wisp.x);
     ctx.fillStyle = '#e8e4ff';
     ctx.beginPath();
     ctx.arc(wisp.x + Math.cos(look - 0.35) * r * 0.42, wisp.y + Math.sin(look - 0.35) * r * 0.42, 2, 0, Math.PI * 2);
     ctx.arc(wisp.x + Math.cos(look + 0.35) * r * 0.42, wisp.y + Math.sin(look + 0.35) * r * 0.42, 2, 0, Math.PI * 2);
     ctx.fill();
+    ctx.globalAlpha = 1;
 
     // A short tail trailing behind the drift.
-    ctx.strokeStyle = 'rgba(124, 108, 255, 0.5)';
+    ctx.strokeStyle = `${spec.color}80`;
     ctx.lineWidth = 3;
     ctx.beginPath();
     ctx.moveTo(wisp.x, wisp.y);
@@ -260,6 +219,13 @@ function drawHud(ctx, world) {
   ctx.textAlign = 'left';
   ctx.textBaseline = 'alphabetic';
 
+  // Dark panels behind the HUD clusters, so the text reads over the beam.
+  ctx.fillStyle = 'rgba(5, 6, 15, 0.55)';
+  ctx.fillRect(12, 18, 280, 164);
+  ctx.fillRect(305, 18, 350, 108);
+  ctx.fillRect(780, 18, 168, 186);
+  if (world.screen === SCREEN_PLAY) ctx.fillRect(300, 506, 420, 28);
+
   // Light meter, top left.
   ctx.font = HUD_FONT;
   ctx.fillStyle = COLORS.paper;
@@ -275,7 +241,30 @@ function drawHud(ctx, world) {
   ctx.fillStyle = COLORS.paper;
   ctx.fillText(`${Math.ceil(world.light)}`, 232, 57);
 
-  // Night, top centre, with its progress.
+  // Tonight's wave: how many shadows are still coming, and of which kind.
+  const incoming = world.spawnLeft + world.wisps.length;
+  ctx.font = HUD_FONT;
+  ctx.fillStyle = COLORS.paper;
+  ctx.fillText(`INCOMING ${incoming}`, 24, 80);
+  const counts = { mote: 0, dart: 0, flicker: 0, shade: 0, gloom: 0, boss: 0 };
+  for (const wisp of world.wisps) counts[wisp.kind] += 1;
+  const rosterParts = ['mote', 'dart', 'flicker', 'shade', 'gloom']
+    .filter((kind) => counts[kind] > 0)
+    .map((kind) => `${WISP_KINDS[kind].label} ${counts[kind]}`);
+  ctx.font = HINT_FONT;
+  ctx.fillStyle = COLORS.dim;
+  if (rosterParts.length === 0) {
+    ctx.fillText('the hollow is quiet', 24, 100);
+  } else {
+    ctx.fillText(rosterParts.slice(0, 3).join('  ·  '), 24, 100);
+    if (rosterParts.length > 3) ctx.fillText(rosterParts.slice(3).join('  ·  '), 24, 118);
+  }
+  ctx.fillText('Darts zigzag · Flickers flit', 24, 138);
+  ctx.fillText('Shades steal light · Glooms endure', 24, 156);
+  ctx.fillStyle = COLORS.dim;
+  ctx.fillText(`BANISHED ${world.banished}`, 24, 176);
+
+  // Night, top centre, with its progress and the stakes.
   ctx.textAlign = 'center';
   ctx.fillStyle = COLORS.paper;
   ctx.font = HUD_BIG;
@@ -285,10 +274,26 @@ function drawHud(ctx, world) {
   ctx.fillStyle = COLORS.lantern;
   const nightFrac = world.intermission > 0 ? 1 : world.nightTime / NIGHT_SECONDS;
   ctx.fillRect(FIELD.width / 2 - 90, 48, 180 * Math.min(1, nightFrac), 6);
+  ctx.font = HINT_FONT;
+  ctx.fillStyle = COLORS.dim;
+  ctx.fillText('WIN survive all 5 nights  ·  LOSE light hits 0', FIELD.width / 2, 76);
+
+  // The boss bar, while the Hollow King lives.
+  if (world.boss) {
+    const boss = world.boss;
+    ctx.font = HUD_FONT;
+    ctx.fillStyle = '#c9a6ff';
+    ctx.fillText('THE HOLLOW KING  ·  FINAL NIGHT', FIELD.width / 2, 98);
+    ctx.fillStyle = 'rgba(201, 166, 255, 0.2)';
+    ctx.fillRect(FIELD.width / 2 - 110, 106, 220, 8);
+    ctx.fillStyle = '#c9a6ff';
+    ctx.fillRect(FIELD.width / 2 - 110, 106, 220 * Math.max(0, boss.hp / boss.maxHp), 8);
+  }
 
   // Score, top right.
   ctx.textAlign = 'right';
   ctx.font = HUD_BIG;
+  ctx.fillStyle = COLORS.paper;
   ctx.fillText(`${world.score}`, FIELD.width - 24, 40);
   ctx.font = HUD_FONT;
   ctx.fillStyle = COLORS.dim;
@@ -301,14 +306,36 @@ function drawHud(ctx, world) {
     ctx.fillRect(FIELD.width - 104, 88, 80 * (world.comboTimer / 2), 4);
   }
 
-  // Controls hint, fading out a few seconds into the first night.
-  if (world.screen === SCREEN_PLAY && world.time < 8) {
-    ctx.textAlign = 'center';
-    ctx.globalAlpha = Math.max(0, 1 - (world.time - 5) / 3);
+  // Ember charms earned this run, one per 20 banished wisps.
+  ctx.textAlign = 'right';
+  ctx.font = HUD_FONT;
+  ctx.fillStyle = COLORS.paper;
+  ctx.fillText('CHARMS', FIELD.width - 24, 118);
+  ctx.font = HINT_FONT;
+  if (world.charms.length === 0) {
     ctx.fillStyle = COLORS.dim;
+    ctx.fillText('banish 20 wisps to earn one', FIELD.width - 24, 138);
+  } else {
+    const charmCounts = {};
+    for (const charm of world.charms) charmCounts[charm] = (charmCounts[charm] || 0) + 1;
+    let cy = 138;
+    for (const charm of ['Wide Beam', 'Hot Flare', 'Deep Well', 'Swift Feet']) {
+      if (!charmCounts[charm]) continue;
+      ctx.fillStyle = COLORS.flame;
+      ctx.fillText(`${charm} x${charmCounts[charm]}`, FIELD.width - 24, cy);
+      cy += 18;
+    }
+  }
+
+  // Bottom ability bar: the controls stay visible for the whole run.
+  if (world.screen === SCREEN_PLAY) {
+    ctx.textAlign = 'center';
     ctx.font = HINT_FONT;
-    ctx.fillText('WASD move  ·  mouse aims the light  ·  Space or click flares', FIELD.width / 2, FIELD.height - 18);
-    ctx.globalAlpha = 1;
+    const flareReady = world.keeper.flareTimer <= 0 && world.light >= KEEPER.flareCost;
+    ctx.fillStyle = flareReady ? COLORS.flame : COLORS.dim;
+    ctx.fillText('SPACE flare', FIELD.width / 2 - 150, FIELD.height - 18);
+    ctx.fillStyle = COLORS.dim;
+    ctx.fillText('WASD move  ·  mouse aims the light  ·  R restart', FIELD.width / 2 + 90, FIELD.height - 18);
   }
 
   // Night banner.
@@ -337,7 +364,8 @@ function centerText(ctx, text, y, font, color) {
 }
 
 function drawTitle(ctx, world) {
-  drawOverlay(ctx, 0.5, '#05060f');
+  // A lighter veil than before, so the keeper and the circling wisps show through.
+  drawOverlay(ctx, 0.42, '#05060f');
   centerText(ctx, 'EMBERWATCH', 168, TITLE_FONT, COLORS.flame);
   centerText(ctx, 'Five nights. One lantern. Keep the light alive.', 208, '500 19px Georgia, serif', COLORS.paper);
   centerText(ctx, 'Burn the shadow wisps with your beam. Gather fallen embers to feed the flame.', 240, HINT_FONT, COLORS.dim);
@@ -350,13 +378,60 @@ function drawTitle(ctx, world) {
   if (world.best > 0) centerText(ctx, `Best score: ${world.best}`, 436, HINT_FONT, COLORS.dim);
 }
 
+function drawDawn(ctx) {
+  // The dawn itself: a warm sky, a rising sun and its rays over the hollow.
+  const sky = ctx.createLinearGradient(0, 0, 0, FIELD.height);
+  sky.addColorStop(0, 'rgba(26, 18, 8, 0.96)');
+  sky.addColorStop(0.45, 'rgba(122, 61, 18, 0.96)');
+  sky.addColorStop(0.75, 'rgba(224, 138, 46, 0.96)');
+  sky.addColorStop(1, 'rgba(255, 217, 122, 0.96)');
+  ctx.fillStyle = sky;
+  ctx.fillRect(0, 0, FIELD.width, FIELD.height);
+  const sunX = FIELD.width / 2;
+  const sunY = 468;
+  ctx.save();
+  ctx.globalCompositeOperation = 'lighter';
+  const halo = ctx.createRadialGradient(sunX, sunY, 10, sunX, sunY, 150);
+  halo.addColorStop(0, 'rgba(255, 240, 200, 0.8)');
+  halo.addColorStop(1, 'rgba(255, 200, 90, 0)');
+  ctx.fillStyle = halo;
+  ctx.beginPath();
+  ctx.arc(sunX, sunY, 150, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.restore();
+  ctx.fillStyle = '#fff3d6';
+  ctx.beginPath();
+  ctx.arc(sunX, sunY, 40, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.strokeStyle = 'rgba(255, 243, 214, 0.5)';
+  ctx.lineWidth = 3;
+  for (let i = 0; i < 12; i += 1) {
+    const a = (i / 12) * Math.PI * 2;
+    ctx.beginPath();
+    ctx.moveTo(sunX + Math.cos(a) * 50, sunY + Math.sin(a) * 50);
+    ctx.lineTo(sunX + Math.cos(a) * 74, sunY + Math.sin(a) * 74);
+    ctx.stroke();
+  }
+}
+
 function drawEnd(ctx, world, won) {
   if (won) {
-    drawOverlay(ctx, 0.42, '#2a1f08');
+    drawDawn(ctx);
     centerText(ctx, 'DAWN BREAKS', 190, TITLE_FONT, COLORS.flame);
     centerText(ctx, 'The hollow is quiet again. Five nights survived.', 232, '500 19px Georgia, serif', COLORS.paper);
   } else {
     drawOverlay(ctx, 0.62, '#05060f');
+    // The keeper's last ember, still glowing where the light went out.
+    ctx.save();
+    ctx.globalCompositeOperation = 'lighter';
+    const last = ctx.createRadialGradient(world.keeper.x, world.keeper.y, 1, world.keeper.x, world.keeper.y, 26);
+    last.addColorStop(0, 'rgba(255, 179, 71, 0.55)');
+    last.addColorStop(1, 'rgba(255, 179, 71, 0)');
+    ctx.fillStyle = last;
+    ctx.beginPath();
+    ctx.arc(world.keeper.x, world.keeper.y, 26, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
     centerText(ctx, 'THE LIGHT IS OUT', 190, TITLE_FONT, '#c9b8ff');
     centerText(ctx, 'Darkness takes the hollow.', 232, '500 19px Georgia, serif', COLORS.paper);
   }
@@ -375,23 +450,18 @@ export function drawWorld(ctx, world) {
     const mag = world.shake * 22;
     ctx.translate(Math.sin(world.time * 97) * mag, Math.cos(world.time * 113) * mag);
   }
-  drawBackground(ctx, world);
+  drawHollow(ctx, world);
   drawEmbers(ctx, world);
   if (world.screen === SCREEN_PLAY) {
-    drawBeam(ctx, world.keeper);
+    drawBeam(ctx, world.keeper, world.time);
   }
   drawWisps(ctx, world);
   drawKeeper(ctx, world);
   drawParticles(ctx, world);
-  if (world.flareRing > 0) {
-    ctx.strokeStyle = `rgba(255, 224, 138, ${world.flareRing * 2.4})`;
-    ctx.lineWidth = 4;
-    ctx.beginPath();
-    ctx.arc(world.keeper.x, world.keeper.y, KEEPER.flareRadius * (1.15 - world.flareRing), 0, Math.PI * 2);
-    ctx.stroke();
-  }
+  drawFlareRing(ctx, world);
   drawVignette(ctx, world);
-  if (world.screen === SCREEN_PLAY || world.screen === SCREEN_WIN || world.screen === SCREEN_LOSS) {
+  // The HUD stays on play and loss; the dawn carries the win screen alone.
+  if (world.screen === SCREEN_PLAY || world.screen === SCREEN_LOSS) {
     drawHud(ctx, world);
   }
   if (world.screen === SCREEN_TITLE) drawTitle(ctx, world);

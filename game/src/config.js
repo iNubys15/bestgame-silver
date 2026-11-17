@@ -46,13 +46,47 @@ export const WISP = {
   baseSpeed: 34,
   speedPerNight: 7,
   radius: 14,
-  spawnStart: 1.15,
-  spawnEnd: 0.45,
-  maxAlive: 26,
+  spawnStart: 1.05,
+  spawnEnd: 0.4,
+  maxAlive: 28,
+  budgetBase: 16,
+  budgetPerNight: 6,
 };
 
+/** Three kinds of shadow, each with its own look, speed and threat. */
+export const WISP_KINDS = {
+  mote: {
+    hp: 30, speed: 34, radius: 14, score: 10, touch: 14, wobble: 0.55,
+    color: '#7c6cff', core: '#2a2350', label: 'Motes',
+  },
+  dart: {
+    hp: 18, speed: 58, radius: 10, score: 15, touch: 10, wobble: 1.6,
+    color: '#ff5a8a', core: '#3d1024', label: 'Darts',
+  },
+  flicker: {
+    hp: 12, speed: 72, radius: 8, score: 12, touch: 8, wobble: 2.2,
+    color: '#7ce0ff', core: '#0e2a3d', label: 'Flickers',
+  },
+  shade: {
+    hp: 40, speed: 28, radius: 16, score: 20, touch: 16, wobble: 0.4,
+    color: '#ff8a5a', core: '#3d1c10', label: 'Shades',
+  },
+  gloom: {
+    hp: 60, speed: 24, radius: 20, score: 25, touch: 20, wobble: 0.25,
+    color: '#9d7bff', core: '#1c1440', label: 'Glooms',
+  },
+  boss: {
+    hp: 300, speed: 18, radius: 34, score: 150, touch: 30, wobble: 0.2,
+    color: '#c9a6ff', core: '#241a4a', label: 'The Hollow King',
+  },
+};
+
+/** Ember charms: one is earned every 20 banished wisps, cycling through four. */
+export const CHARMS = ['Wide Beam', 'Hot Flare', 'Deep Well', 'Swift Feet'];
+export const CHARM_EVERY = 20;
+
 export const EMBER = {
-  spawnSeconds: 2.2,
+  spawnSeconds: 1.8,
   fallSpeed: 26,
   score: 5,
   lifeSeconds: 9,
