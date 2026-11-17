@@ -7,10 +7,11 @@ import {
 } from './world.js';
 
 const START_SECONDS = 5;
-// The play shot stages the flare burst: the skilled run fires a flare at 192.38s
+// The play shot stages the flare burst: the skilled run fires a flare at 191.18s
 // that banishes five shadows at once and catches the Hollow King deep inside the
-// blast, so the frame shows the fight's peak moment, not just a busy mid-fight.
-const PLAY_SECONDS = 192.48;
+// blast — with 24 wisps still alive, the densest burst moment of night 5, so the
+// frame shows the fight's peak moment at its busiest, not just a busy mid-fight.
+const PLAY_SECONDS = 191.28;
 const LIMIT_SECONDS = 600;
 
 function blankInput() {

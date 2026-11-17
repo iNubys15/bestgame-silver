@@ -9,7 +9,9 @@ You are the keeper of the last lantern in a dark hollow. Light is your weapon an
 burn the shadow wisps with your beam, gather fallen embers to feed the flame, and survive
 all five nights until dawn breaks. When the light dies, the dark takes the hollow. The
 Hollow King wears a crown and a frown, and the dawn screen shows the keeper standing on
-the ridge with the lantern raised, the king's fallen crown at his feet.
+the ridge with the lantern raised, the king's fallen crown at his feet. On the final
+night the dawn is already breaking into the hollow — warm light rising from the horizon
+while the keeper fights the last shadows.
 
 ## How to play
 

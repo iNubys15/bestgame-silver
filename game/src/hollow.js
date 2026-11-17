@@ -164,6 +164,25 @@ function drawGroundGlows(ctx, world) {
     ctx.arc(x, y, 2, 0, Math.PI * 2);
     ctx.fill();
   }
+  // Three more pools in the lower-left quadrant, the sparsest part of the
+  // frame: fixed positions, so the same moment always draws the same hollow.
+  for (const [gx, gy] of [[110, 430], [260, 480], [180, 385]]) {
+    const pulse = 0.18 + 0.08 * Math.sin(world.time * 0.7 + gx * 0.02);
+    ctx.save();
+    ctx.globalCompositeOperation = 'lighter';
+    const glow = ctx.createRadialGradient(gx, gy, 1, gx, gy, 44);
+    glow.addColorStop(0, `rgba(255, 154, 60, ${pulse})`);
+    glow.addColorStop(1, 'rgba(255, 154, 60, 0)');
+    ctx.fillStyle = glow;
+    ctx.beginPath();
+    ctx.arc(gx, gy, 34, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+    ctx.fillStyle = 'rgba(255, 200, 110, 0.5)';
+    ctx.beginPath();
+    ctx.arc(gx, gy, 2, 0, Math.PI * 2);
+    ctx.fill();
+  }
   // Glowing mushrooms on the near ridge, violet and still.
   for (let i = 0; i < 7; i += 1) {
     const x = (i * 151.7 + 90) % FIELD.width;

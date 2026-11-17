@@ -210,18 +210,20 @@ function drawBoss(ctx, world) {
   ctx.fill();
   ctx.fillStyle = '#ffe08a';
   ctx.beginPath();
-  ctx.arc(boss.x + Math.cos(look - 0.32) * r * 0.42, boss.y + Math.sin(look - 0.32) * r * 0.42, 4, 0, Math.PI * 2);
-  ctx.arc(boss.x + Math.cos(look + 0.32) * r * 0.42, boss.y + Math.sin(look + 0.32) * r * 0.42, 4, 0, Math.PI * 2);
+  ctx.arc(boss.x + Math.cos(look - 0.32) * r * 0.42, boss.y + Math.sin(look - 0.32) * r * 0.42, 5, 0, Math.PI * 2);
+  ctx.arc(boss.x + Math.cos(look + 0.32) * r * 0.42, boss.y + Math.sin(look + 0.32) * r * 0.42, 5, 0, Math.PI * 2);
   ctx.fill();
 
   // A face the judge remembers, drawn in the frame that faces the keeper:
   // angry brows slanted at him, a frown under the burning eyes, a gold band
   // where the crown spikes rise, and a faint aura ring around the whole king.
+  // The brows and frown are GOLD, not dark: dark strokes on the dark core
+  // washed out in the flare light, and gold reads through the burst.
   ctx.save();
   ctx.translate(boss.x, boss.y);
   ctx.rotate(look);
-  ctx.strokeStyle = '#241a4a';
-  ctx.lineWidth = 3.5;
+  ctx.strokeStyle = '#ffd76a';
+  ctx.lineWidth = 4.5;
   for (const side of [-1, 1]) {
     ctx.beginPath();
     ctx.moveTo(r * 0.22, side * r * 0.26);
@@ -321,13 +323,29 @@ function drawVignette(ctx, world) {
   const radius = 240 + light * 360;
   const grad = ctx.createRadialGradient(world.keeper.x, world.keeper.y, radius * 0.45, world.keeper.x, world.keeper.y, radius);
   grad.addColorStop(0, 'rgba(5, 6, 16, 0)');
-  grad.addColorStop(1, 'rgba(5, 6, 16, 0.60)');
+  grad.addColorStop(1, 'rgba(5, 6, 16, 0.48)');
   ctx.fillStyle = grad;
   ctx.fillRect(0, 0, FIELD.width, FIELD.height);
   if (world.flash > 0) {
     ctx.fillStyle = `rgba(255, 60, 60, ${world.flash * 0.5})`;
     ctx.fillRect(0, 0, FIELD.width, FIELD.height);
   }
+}
+
+/** Dawn breaking into the final night: a warm glow rising from the horizon, so
+ * the lower half of the play frame is never empty dark — the dawn the keeper is
+ * fighting toward is already warming the hollow floor. Play screen only. */
+function drawDawnWash(ctx, world) {
+  if (world.screen !== SCREEN_PLAY) return;
+  const wash = ctx.createRadialGradient(
+    FIELD.width / 2, FIELD.height, 40,
+    FIELD.width / 2, FIELD.height, 560,
+  );
+  wash.addColorStop(0, 'rgba(255, 170, 80, 0.18)');
+  wash.addColorStop(0.5, 'rgba(255, 150, 60, 0.06)');
+  wash.addColorStop(1, 'rgba(255, 150, 60, 0)');
+  ctx.fillStyle = wash;
+  ctx.fillRect(0, 0, FIELD.width, FIELD.height);
 }
 
 /** A small map of the hollow, bottom right: keeper, wisps, boss and embers. */
@@ -679,12 +697,14 @@ function drawDawn(ctx, world) {
   // The dawn itself: a warm sky, a low sun rising over the ridge, the keeper
   // standing with the lantern held high, and the Hollow King's fallen crown
   // on the ridge — a scene, not a flat gradient. The sun sits low and clear
-  // of every line of text, so no ray ever crosses a word.
+  // of every line of text, so no ray ever crosses a word. The sky is fully
+  // opaque: at 0.96 the night field ghosted through it, and the keeper's
+  // lantern showed as a stray box on the score line.
   const sky = ctx.createLinearGradient(0, 0, 0, FIELD.height);
-  sky.addColorStop(0, 'rgba(26, 18, 8, 0.96)');
-  sky.addColorStop(0.45, 'rgba(122, 61, 18, 0.96)');
-  sky.addColorStop(0.75, 'rgba(224, 138, 46, 0.96)');
-  sky.addColorStop(1, 'rgba(255, 217, 122, 0.96)');
+  sky.addColorStop(0, 'rgba(26, 18, 8, 1)');
+  sky.addColorStop(0.45, 'rgba(122, 61, 18, 1)');
+  sky.addColorStop(0.75, 'rgba(224, 138, 46, 1)');
+  sky.addColorStop(1, 'rgba(255, 217, 122, 1)');
   ctx.fillStyle = sky;
   ctx.fillRect(0, 0, FIELD.width, FIELD.height);
   const sunX = FIELD.width / 2;
@@ -859,6 +879,7 @@ export function drawWorld(ctx, world) {
     ctx.translate(Math.sin(world.time * 97) * mag, Math.cos(world.time * 113) * mag);
   }
   drawHollow(ctx, world);
+  drawDawnWash(ctx, world);
   drawEmbers(ctx, world);
   if (world.screen === SCREEN_PLAY) {
     drawBeam(ctx, world.keeper, world.time);

@@ -127,7 +127,11 @@ function grantCharm(world) {
   if (charm === 'Hot Flare') world.keeper.flareDamage += 20;
   if (charm === 'Deep Well') world.drainRate *= 0.9;
   if (charm === 'Swift Feet') world.keeper.speed *= 1.12;
-  floater(world, world.keeper.x, world.keeper.y - 34, `Charm: ${charm}`, '#ffe08a');
+  // The announcement sits left of the keeper, clear of the boss's floating bar
+  // above him and the flare callout overhead — it used to crowd the boss bar.
+  const fx = Math.max(80, Math.min(FIELD.width - 80, world.keeper.x - 150));
+  const fy = Math.max(40, Math.min(FIELD.height - 40, world.keeper.y - 10));
+  floater(world, fx, fy, `Charm: ${charm}`, '#ffe08a');
 }
 
 function banishWisp(world, index, audio) {
@@ -162,6 +166,9 @@ function endNight(world, audio) {
   if (world.night > NIGHTS) {
     world.screen = SCREEN_WIN;
     world.floaters.length = 0;
+    // A frozen burst particle must never sit on the dawn screen: the end screen
+    // is a still frame, so stray particles read as dirt on the text.
+    world.particles.length = 0;
     if (world.score > world.best) {
       world.best = world.score;
       saveBest(world.best);
@@ -194,6 +201,7 @@ function loseLight(world, amount, audio) {
   if (world.light <= 0) {
     world.screen = SCREEN_LOSS;
     world.floaters.length = 0;
+    world.particles.length = 0;
     if (world.score > world.best) {
       world.best = world.score;
       saveBest(world.best);
@@ -265,6 +273,7 @@ export function stepWorld(world, input, dt, audio) {
   if (world.light <= 0) {
     world.screen = SCREEN_LOSS;
     world.floaters.length = 0;
+    world.particles.length = 0;
     if (world.score > world.best) {
       world.best = world.score;
       saveBest(world.best);
