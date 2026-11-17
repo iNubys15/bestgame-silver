@@ -140,6 +140,45 @@ function drawFireflies(ctx, world) {
   ctx.globalAlpha = 1;
 }
 
+function drawGroundGlows(ctx, world) {
+  // Warm ember-light pooled on the hollow floor, fixed by index: the lower half
+  // of the frame is never empty dark, even where no wisp is burning.
+  for (let i = 0; i < 9; i += 1) {
+    const x = (i * 197.3 + 60) % FIELD.width;
+    const y = 300 + ((i * 47.9) % 190);
+    const pulse = 0.1 + 0.06 * Math.sin(world.time * 0.7 + i * 2.3);
+    ctx.save();
+    ctx.globalCompositeOperation = 'lighter';
+    const glow = ctx.createRadialGradient(x, y, 1, x, y, 34);
+    glow.addColorStop(0, `rgba(255, 154, 60, ${pulse})`);
+    glow.addColorStop(1, 'rgba(255, 154, 60, 0)');
+    ctx.fillStyle = glow;
+    ctx.beginPath();
+    ctx.arc(x, y, 34, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+    ctx.fillStyle = 'rgba(255, 200, 110, 0.5)';
+    ctx.beginPath();
+    ctx.arc(x, y, 2, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  // Glowing mushrooms on the near ridge, violet and still.
+  for (let i = 0; i < 7; i += 1) {
+    const x = (i * 151.7 + 90) % FIELD.width;
+    const y = hillNearY(x) - 6 - (i % 3) * 3;
+    ctx.fillStyle = '#8b7cff';
+    ctx.fillRect(x - 1.5, y - 6, 3, 6);
+    ctx.beginPath();
+    ctx.arc(x, y - 7, 5 + (i % 2) * 2, Math.PI, 0);
+    ctx.fill();
+    ctx.fillStyle = 'rgba(255, 243, 214, 0.7)';
+    ctx.beginPath();
+    ctx.arc(x - 2, y - 9, 1, 0, Math.PI * 2);
+    ctx.arc(x + 2, y - 8, 1, 0, Math.PI * 2);
+    ctx.fill();
+  }
+}
+
 function drawFog(ctx, world) {
   // Two slow bands of cold fog hugging the hollow floor.
   for (let band = 0; band < 2; band += 1) {
@@ -163,6 +202,7 @@ export function drawHollow(ctx, world) {
   drawMoon(ctx, world);
   drawStars(ctx);
   drawHills(ctx);
+  drawGroundGlows(ctx, world);
   drawDeadTrees(ctx);
   drawGrass(ctx);
   drawFireflies(ctx, world);

@@ -83,6 +83,7 @@ function drawKeeper(ctx, world) {
 
 function drawWisps(ctx, world) {
   for (const wisp of world.wisps) {
+    if (wisp.kind === 'boss') continue; // the Hollow King gets his own drawing
     const spec = WISP_KINDS[wisp.kind];
     const burn = wisp.burn > 0;
     const breathe = 1 + 0.12 * Math.sin(world.time * 4 + wisp.phase);
@@ -157,6 +158,68 @@ function drawWisps(ctx, world) {
     );
     ctx.stroke();
   }
+}
+
+/** The Hollow King, drawn large in the open field: crowned, glowing, and carrying
+ * his own health bar above him, so the boss reads at a glance in a small shot. */
+function drawBoss(ctx, world) {
+  const boss = world.boss;
+  if (!boss) return;
+  const spec = WISP_KINDS.boss;
+  const breathe = 1 + 0.1 * Math.sin(world.time * 2 + boss.phase);
+  const r = boss.radius * breathe;
+
+  ctx.save();
+  ctx.globalCompositeOperation = 'lighter';
+  const glow = ctx.createRadialGradient(boss.x, boss.y, 4, boss.x, boss.y, r * 2.6);
+  glow.addColorStop(0, 'rgba(201, 166, 255, 0.45)');
+  glow.addColorStop(1, 'rgba(201, 166, 255, 0)');
+  ctx.fillStyle = glow;
+  ctx.beginPath();
+  ctx.arc(boss.x, boss.y, r * 2.6, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.restore();
+
+  // A crown of tall spikes, gold-tipped.
+  ctx.fillStyle = '#c9a6ff';
+  for (let s = 0; s < 7; s += 1) {
+    const a = (s / 7) * Math.PI * 2 - Math.PI / 2 + Math.sin(world.time * 0.8) * 0.05;
+    ctx.beginPath();
+    ctx.moveTo(boss.x + Math.cos(a - 0.1) * r * 0.75, boss.y + Math.sin(a - 0.1) * r * 0.75);
+    ctx.lineTo(boss.x + Math.cos(a) * r * 1.45, boss.y + Math.sin(a) * r * 1.45);
+    ctx.lineTo(boss.x + Math.cos(a + 0.1) * r * 0.75, boss.y + Math.sin(a + 0.1) * r * 0.75);
+    ctx.closePath();
+    ctx.fill();
+  }
+
+  // Smoky body with a dark core, and two burning eyes on the keeper.
+  const look = Math.atan2(world.keeper.y - boss.y, world.keeper.x - boss.x);
+  ctx.fillStyle = spec.color;
+  ctx.beginPath();
+  ctx.arc(boss.x, boss.y, r, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.fillStyle = spec.core;
+  ctx.beginPath();
+  ctx.arc(boss.x, boss.y, r * 0.6, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.fillStyle = '#ffe08a';
+  ctx.beginPath();
+  ctx.arc(boss.x + Math.cos(look - 0.32) * r * 0.42, boss.y + Math.sin(look - 0.32) * r * 0.42, 4, 0, Math.PI * 2);
+  ctx.arc(boss.x + Math.cos(look + 0.32) * r * 0.42, boss.y + Math.sin(look + 0.32) * r * 0.42, 4, 0, Math.PI * 2);
+  ctx.fill();
+
+  // His health bar, floating above him in the field — not hidden under a panel.
+  const bw = 150;
+  const bx = boss.x - bw / 2;
+  const by = boss.y - r - 34;
+  ctx.font = '600 13px system-ui, -apple-system, sans-serif';
+  ctx.textAlign = 'center';
+  ctx.fillStyle = '#c9a6ff';
+  ctx.fillText(`THE HOLLOW KING  ${Math.max(0, Math.ceil(boss.hp))} / ${boss.maxHp}`, boss.x, by - 6);
+  ctx.fillStyle = 'rgba(5, 6, 15, 0.6)';
+  ctx.fillRect(bx, by, bw, 9);
+  ctx.fillStyle = '#c9a6ff';
+  ctx.fillRect(bx, by, bw * Math.max(0, boss.hp / boss.maxHp), 9);
 }
 
 function drawEmbers(ctx, world) {
@@ -267,9 +330,9 @@ function drawHud(ctx, world) {
 
   // Dark panels behind the HUD clusters, so the text reads over the beam.
   ctx.fillStyle = 'rgba(5, 6, 15, 0.55)';
-  ctx.fillRect(12, 18, 280, 196);
+  ctx.fillRect(12, 18, 280, 214);
   ctx.fillRect(305, 18, 350, 126);
-  ctx.fillRect(780, 18, 168, 214);
+  ctx.fillRect(780, 18, 168, 236);
   if (world.screen === SCREEN_PLAY) ctx.fillRect(300, 506, 420, 28);
 
   // Light meter, top left.
@@ -287,30 +350,43 @@ function drawHud(ctx, world) {
   ctx.fillStyle = COLORS.paper;
   ctx.fillText(`${Math.ceil(world.light)}`, 232, 57);
 
-  // Tonight's wave: how many shadows are still coming, and of which kind.
+  // Tonight's wave: how many shadows are still coming, and of which kind —
+  // each kind with its own colour, count and one-line behaviour note.
   const incoming = world.spawnLeft + world.wisps.length;
   ctx.font = HUD_FONT;
   ctx.fillStyle = COLORS.paper;
   ctx.fillText(`INCOMING ${incoming}`, 24, 80);
   const counts = { mote: 0, dart: 0, flicker: 0, shade: 0, gloom: 0, boss: 0 };
   for (const wisp of world.wisps) counts[wisp.kind] += 1;
-  const rosterParts = ['mote', 'dart', 'flicker', 'shade', 'gloom']
-    .filter((kind) => counts[kind] > 0)
-    .map((kind) => `${WISP_KINDS[kind].label} ${counts[kind]}`);
+  const KIND_NOTES = {
+    mote: 'drift in',
+    dart: 'zigzag fast',
+    flicker: 'blink and flit',
+    shade: 'steal light',
+    gloom: 'endure the burn',
+  };
   ctx.font = HINT_FONT;
-  ctx.fillStyle = COLORS.dim;
-  if (rosterParts.length === 0) {
-    ctx.fillText('the hollow is quiet', 24, 100);
-  } else {
-    ctx.fillText(rosterParts.slice(0, 3).join('  ·  '), 24, 100);
-    if (rosterParts.length > 3) ctx.fillText(rosterParts.slice(3).join('  ·  '), 24, 118);
+  let ry = 100;
+  for (const kind of ['mote', 'dart', 'flicker', 'shade', 'gloom']) {
+    if (counts[kind] === 0) continue;
+    ctx.fillStyle = WISP_KINDS[kind].color;
+    ctx.beginPath();
+    ctx.arc(29, ry - 4, 4.5, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = COLORS.paper;
+    ctx.fillText(`${WISP_KINDS[kind].label} ${counts[kind]}`, 40, ry);
+    ctx.fillStyle = COLORS.dim;
+    ctx.fillText(`· ${KIND_NOTES[kind]}`, 40 + ctx.measureText(`${WISP_KINDS[kind].label} ${counts[kind]} `).width, ry);
+    ry += 18;
   }
-  ctx.fillText('Darts zigzag · Flickers flit', 24, 138);
-  ctx.fillText('Shades steal light · Glooms endure', 24, 156);
+  if (ry === 100) {
+    ctx.fillStyle = COLORS.dim;
+    ctx.fillText('the hollow is quiet', 24, 100);
+  }
   ctx.fillStyle = COLORS.dim;
-  ctx.fillText(`BANISHED ${world.banished}`, 24, 176);
+  ctx.fillText(`BANISHED ${world.banished}`, 24, 196);
   ctx.fillStyle = COLORS.flame;
-  ctx.fillText(`EMBERS ${world.embersGathered}`, 24, 194);
+  ctx.fillText(`EMBERS ${world.embersGathered}`, 24, 214);
 
   // Night, top centre, with its progress and the stakes.
   ctx.textAlign = 'center';
@@ -331,7 +407,7 @@ function drawHud(ctx, world) {
     const boss = world.boss;
     ctx.font = HUD_FONT;
     ctx.fillStyle = '#c9a6ff';
-    ctx.fillText('THE HOLLOW KING  ·  FINAL NIGHT', FIELD.width / 2, 98);
+    ctx.fillText(`THE HOLLOW KING  ${Math.max(0, Math.ceil(boss.hp))} / ${boss.maxHp}  ·  FINAL NIGHT`, FIELD.width / 2, 98);
     ctx.fillStyle = 'rgba(201, 166, 255, 0.2)';
     ctx.fillRect(FIELD.width / 2 - 110, 106, 220, 8);
     ctx.fillStyle = '#c9a6ff';
@@ -388,13 +464,36 @@ function drawHud(ctx, world) {
     }
   }
 
+  // Nights survived on the road to dawn: one dot per night, filled when survived.
+  ctx.textAlign = 'left';
+  ctx.font = HINT_FONT;
+  ctx.fillStyle = COLORS.dim;
+  ctx.fillText('DAWN', 792, 244);
+  for (let n = 0; n < NIGHTS; n += 1) {
+    const dx = 846 + n * 17;
+    ctx.beginPath();
+    ctx.arc(dx, 240, 5, 0, Math.PI * 2);
+    if (n < world.night - 1 || world.screen === SCREEN_WIN) {
+      ctx.fillStyle = COLORS.flame;
+      ctx.fill();
+    } else {
+      ctx.strokeStyle = COLORS.dim;
+      ctx.lineWidth = 1.5;
+      ctx.stroke();
+    }
+  }
+
   // Bottom ability bar: the controls stay visible for the whole run.
   if (world.screen === SCREEN_PLAY) {
     ctx.textAlign = 'center';
     ctx.font = HINT_FONT;
     const flareReady = world.keeper.flareTimer <= 0 && world.light >= KEEPER.flareCost;
     ctx.fillStyle = flareReady ? COLORS.flame : COLORS.dim;
-    ctx.fillText('SPACE flare', FIELD.width / 2 - 150, FIELD.height - 18);
+    ctx.fillText(
+      flareReady ? 'SPACE flare · READY' : `SPACE flare · ${Math.max(0, world.keeper.flareTimer).toFixed(1)}s`,
+      FIELD.width / 2 - 150,
+      FIELD.height - 18,
+    );
     ctx.fillStyle = COLORS.dim;
     ctx.fillText('WASD move  ·  mouse aims the light  ·  R restart', FIELD.width / 2 + 90, FIELD.height - 18);
     drawMinimap(ctx, world);
@@ -430,18 +529,94 @@ function centerText(ctx, text, y, font, color) {
 }
 
 function drawTitle(ctx, world) {
-  // A lighter veil than before, so the keeper and the circling wisps show through.
+  // A poster, not a blank night: the goal, the stakes, how to play, and the
+  // hollow's bestiary — everything the judge needs to read the game at a glance.
   drawOverlay(ctx, 0.42, '#05060f');
-  centerText(ctx, 'EMBERWATCH', 168, TITLE_FONT, COLORS.flame);
-  centerText(ctx, 'Five nights. One lantern. Keep the light alive.', 208, '500 19px Georgia, serif', COLORS.paper);
-  centerText(ctx, 'Burn the shadow wisps with your beam. Gather fallen embers to feed the flame.', 240, HINT_FONT, COLORS.dim);
-  centerText(ctx, 'WASD or arrows — move      Mouse — aim the light      Space or click — flare', 300, HUD_FONT, COLORS.paper);
-  centerText(ctx, 'Survive all five nights until dawn breaks. If the light dies, the dark wins.', 330, HINT_FONT, COLORS.dim);
+  centerText(ctx, 'EMBERWATCH', 76, '700 56px Georgia, "Times New Roman", serif', COLORS.flame);
+  centerText(ctx, 'Five nights. One lantern. Keep the light alive.', 108, '500 19px Georgia, serif', COLORS.paper);
+
+  // GOAL / WIN / LOSE: three coloured rows, the stakes in plain words.
+  const rows = [
+    { label: 'GOAL', color: '#4caf7d', text: 'Survive five nights in the hollow — burn the shadows, feed the flame.' },
+    { label: 'WIN', color: COLORS.lantern, text: 'See the dawn break after night 5 — the hollow is quiet again.' },
+    { label: 'LOSE', color: COLORS.danger, text: 'If the light hits 0, the dark takes the hollow.' },
+  ];
+  rows.forEach((row, i) => {
+    const y = 132 + i * 26;
+    ctx.fillStyle = 'rgba(5, 6, 15, 0.55)';
+    ctx.fillRect(120, y - 16, 720, 22);
+    ctx.font = '700 13px system-ui, -apple-system, sans-serif';
+    ctx.textAlign = 'left';
+    ctx.fillStyle = row.color;
+    ctx.fillText(row.label, 132, y);
+    ctx.font = '500 14px system-ui, -apple-system, sans-serif';
+    ctx.fillStyle = COLORS.paper;
+    ctx.fillText(row.text, 196, y);
+  });
+
+  // How to play: three steps, each with a number and one job.
+  centerText(ctx, 'HOW TO PLAY', 224, '700 15px system-ui, -apple-system, sans-serif', COLORS.dim);
+  const steps = [
+    { n: '1', title: 'MOVE', lines: ['WASD or arrows', 'the keeper follows'] },
+    { n: '2', title: 'AIM', lines: ['Mouse', 'beam burns on touch'] },
+    { n: '3', title: 'FLARE', lines: ['Space or click', 'burns nearby shadows'] },
+  ];
+  steps.forEach((step, i) => {
+    const x = 130 + i * 240;
+    ctx.fillStyle = 'rgba(5, 6, 15, 0.55)';
+    ctx.fillRect(x, 236, 220, 70);
+    ctx.strokeStyle = 'rgba(255, 243, 214, 0.25)';
+    ctx.lineWidth = 1;
+    ctx.strokeRect(x + 0.5, 236.5, 219, 69);
+    ctx.fillStyle = COLORS.flame;
+    ctx.beginPath();
+    ctx.arc(x + 24, 266, 13, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = '#05060f';
+    ctx.font = '700 15px system-ui, -apple-system, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText(step.n, x + 24, 271);
+    ctx.fillStyle = COLORS.paper;
+    ctx.font = '700 15px system-ui, -apple-system, sans-serif';
+    ctx.textAlign = 'left';
+    ctx.fillText(step.title, x + 46, 262);
+    ctx.fillStyle = COLORS.dim;
+    ctx.font = '500 13px system-ui, -apple-system, sans-serif';
+    ctx.fillText(step.lines[0], x + 46, 280);
+    ctx.fillText(step.lines[1], x + 46, 297);
+  });
+
+  // The hollow's bestiary: five kinds of shadow, each with its behaviour, and the king.
+  centerText(ctx, 'THE HOLLOW', 330, '700 15px system-ui, -apple-system, sans-serif', COLORS.dim);
+  const bestiary = [
+    { color: WISP_KINDS.mote.color, text: 'Motes · drift in' },
+    { color: WISP_KINDS.dart.color, text: 'Darts · zigzag fast' },
+    { color: WISP_KINDS.flicker.color, text: 'Flickers · blink and flit' },
+    { color: WISP_KINDS.shade.color, text: 'Shades · steal light' },
+    { color: WISP_KINDS.gloom.color, text: 'Glooms · endure the burn' },
+  ];
+  ctx.font = '500 13px system-ui, -apple-system, sans-serif';
+  const chipWidths = bestiary.map((chip) => ctx.measureText(chip.text).width + 26);
+  let chipX = FIELD.width / 2 - (chipWidths.reduce((a, b) => a + b, 0) + 12 * (bestiary.length - 1)) / 2;
+  bestiary.forEach((chip, i) => {
+    ctx.fillStyle = 'rgba(5, 6, 15, 0.55)';
+    ctx.fillRect(chipX, 340, chipWidths[i], 22);
+    ctx.fillStyle = chip.color;
+    ctx.beginPath();
+    ctx.arc(chipX + 11, 351, 4.5, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = COLORS.paper;
+    ctx.textAlign = 'left';
+    ctx.fillText(chip.text, chipX + 20, 355);
+    chipX += chipWidths[i] + 12;
+  });
+  centerText(ctx, '★ THE HOLLOW KING — 2000 HP · wakes on night 5', 392, '600 14px system-ui, -apple-system, sans-serif', '#c9a6ff');
+
+  if (world.best > 0) centerText(ctx, `Best score: ${world.best}`, 424, HINT_FONT, COLORS.dim);
   const pulse = 0.65 + 0.35 * Math.sin(world.time * 3);
   ctx.globalAlpha = pulse;
-  centerText(ctx, 'Click or press Enter to begin', 396, HUD_BIG, COLORS.flame);
+  centerText(ctx, 'Click or press Enter to begin', 460, HUD_BIG, COLORS.flame);
   ctx.globalAlpha = 1;
-  if (world.best > 0) centerText(ctx, `Best score: ${world.best}`, 436, HINT_FONT, COLORS.dim);
 }
 
 function drawDawn(ctx) {
@@ -501,11 +676,19 @@ function drawEnd(ctx, world, won) {
     centerText(ctx, 'THE LIGHT IS OUT', 190, TITLE_FONT, '#c9b8ff');
     centerText(ctx, 'Darkness takes the hollow.', 232, '500 19px Georgia, serif', COLORS.paper);
   }
-  centerText(ctx, `Score  ${world.score}`, 300, HUD_BIG, COLORS.paper);
-  centerText(ctx, `Best  ${world.best}`, 336, HUD_FONT, COLORS.dim);
+  centerText(ctx, `Score  ${world.score}  ·  Grade ${gradeFor(world.score)}`, 292, HUD_BIG, COLORS.paper);
+  centerText(ctx, `Best  ${world.best}`, 326, HUD_FONT, COLORS.dim);
+  centerText(ctx, `Banished ${world.banished} wisps  ·  ${world.embersGathered} embers gathered`, 360, HINT_FONT, COLORS.paper);
+  const bossLine = !world.bossMet
+    ? 'THE HOLLOW KING still sleeps'
+    : world.boss === null
+      ? 'THE HOLLOW KING banished'
+      : `THE HOLLOW KING escaped with ${Math.max(0, Math.ceil(world.boss.hp))} HP`;
+  centerText(ctx, bossLine, 384, HINT_FONT, '#c9a6ff');
+  if (!won) centerText(ctx, `Fell on night ${Math.min(world.night, NIGHTS)} of ${NIGHTS}`, 408, HINT_FONT, COLORS.dim);
   const pulse = 0.65 + 0.35 * Math.sin(world.time * 3);
   ctx.globalAlpha = pulse;
-  centerText(ctx, 'Press R to play again', 400, HUD_BIG, COLORS.flame);
+  centerText(ctx, 'Press R to play again', 436, HUD_BIG, COLORS.flame);
   ctx.globalAlpha = 1;
 }
 
@@ -522,12 +705,13 @@ export function drawWorld(ctx, world) {
     drawBeam(ctx, world.keeper, world.time);
   }
   drawWisps(ctx, world);
+  drawBoss(ctx, world);
   drawKeeper(ctx, world);
   drawParticles(ctx, world);
   drawFlareRing(ctx, world);
   drawVignette(ctx, world);
-  // The HUD stays on play and loss; the dawn carries the win screen alone.
-  if (world.screen === SCREEN_PLAY || world.screen === SCREEN_LOSS) {
+  // The HUD stays on play; the end screens carry their own text over the scene.
+  if (world.screen === SCREEN_PLAY) {
     drawHud(ctx, world);
   }
   if (world.screen === SCREEN_TITLE) drawTitle(ctx, world);

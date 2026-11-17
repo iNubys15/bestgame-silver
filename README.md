@@ -18,14 +18,14 @@ all five nights until dawn breaks. When the light dies, the dark takes the hollo
 
 Survive 5 nights to win. Each night the wisps come faster and thicker. Embers restore
 light (+16) and score (+5). Banishing a wisp scores its value × your combo, and later
-nights pay more — a night-5 banish is worth twice a night-1 one. Holding the beam on a
+nights pay more — a night-5 banish is worth 2.6× a night-1 one. Holding the beam on a
 target holds your combo (3-second window); letting go lets it lapse. A wisp that
 touches you steals light and breaks the combo. Your grade (C/B/A/S) follows your score,
 and the HUD shows a minimap of the hollow plus a countdown to dawn.
 
 Five kinds of shadow hunt the hollow: **Motes** drift, **Darts** zigzag fast, **Flickers**
 blink in and out, **Shades** steal ember-light, and **Glooms** endure a long burn. On the
-fifth night **THE HOLLOW KING** wakes — a giant wisp with 1000 health. Every 20 banished
+fifth night **THE HOLLOW KING** wakes — a giant wisp with 2000 health. Every 20 banished
 wisps earns an ember charm (Wide Beam, Hot Flare, Deep Well, Swift Feet) that strengthens
 the keeper for the rest of the run.
 

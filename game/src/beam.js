@@ -62,6 +62,16 @@ export function drawBeam(ctx, keeper, time) {
   ctx.lineTo(tipX, tipY);
   ctx.stroke();
 
+  // Two bright edge rays, so the cone reads as a starburst of light, not a wedge.
+  ctx.strokeStyle = 'rgba(255, 224, 138, 0.5)';
+  ctx.lineWidth = 2;
+  for (const side of [-1, 1]) {
+    ctx.beginPath();
+    ctx.moveTo(keeper.x, keeper.y);
+    ctx.lineTo(keeper.x + Math.cos(aim + side * half * 0.82) * len, keeper.y + Math.sin(aim + side * half * 0.82) * len);
+    ctx.stroke();
+  }
+
   // Sparks drifting along the beam, fixed by index and the clock.
   for (let i = 0; i < 10; i += 1) {
     const along = ((i * 0.13 + time * 0.25) % 1) * len;

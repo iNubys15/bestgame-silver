@@ -7,7 +7,7 @@ import {
 } from './world.js';
 
 const START_SECONDS = 5;
-const PLAY_SECONDS = 176;
+const PLAY_SECONDS = 192;
 const LIMIT_SECONDS = 600;
 
 function blankInput() {
@@ -38,7 +38,7 @@ function nearest(list, x, y) {
  * a wisp that gets too close, flare when crowded, and drift back to the middle of
  * the hollow when nothing is near, so the fight stays where the eye is.
  */
-function skilledInput(world) {
+export function skilledInput(world) {
   const input = blankInput();
   const keeper = world.keeper;
   const wisp = nearest(world.wisps, keeper.x, keeper.y);
@@ -48,7 +48,7 @@ function skilledInput(world) {
 
   // The boss is the prize target on the final night: burn him when he closes in.
   let target = wisp.item;
-  if (world.boss && Math.hypot(world.boss.x - keeper.x, world.boss.y - keeper.y) < 160) {
+  if (world.boss && Math.hypot(world.boss.x - keeper.x, world.boss.y - keeper.y) < 260) {
     target = world.boss;
   }
   const targetDist = target ? Math.hypot(target.x - keeper.x, target.y - keeper.y) : Infinity;
@@ -82,9 +82,14 @@ function skilledInput(world) {
   return input;
 }
 
-/** A careless pilot: it never flares and only shuffles after embers, so the dark wins. */
+/** A careless pilot: it never flares, aims the beam at a far corner where no wisp
+ * wanders, and only shuffles after embers, so the dark wins. */
 function carelessInput(world) {
   const input = blankInput();
+  // The beam points at the top-left corner and stays there: the shadows walk
+  // straight past it to the keeper.
+  input.mouse.x = 40;
+  input.mouse.y = 40;
   const keeper = world.keeper;
   const ember = nearest(world.embers, keeper.x, keeper.y);
   if (world.light < 50 && ember.item) {
@@ -94,6 +99,22 @@ function carelessInput(world) {
     if (Math.abs(dy) > 12) input.keys.add(dy > 0 ? 'KeyS' : 'KeyW');
   }
   return input;
+}
+
+/**
+ * A real prior best: play one full run with the skilled pilot, from the same seed,
+ * and take its final score. The staged shots show that score as BEST — the score a
+ * returning keeper actually earned in an earlier run under the same rules, never a
+ * hand-set number. The reference run is a prefix of nothing: it is a whole game.
+ */
+export function referenceBest() {
+  const ref = createWorld(1);
+  startGame(ref, 1);
+  for (let i = 0; i < LIMIT_SECONDS / STEP; i += 1) {
+    stepWorld(ref, skilledInput(ref), STEP, null);
+    if (ref.screen !== SCREEN_PLAY) break;
+  }
+  return ref.score;
 }
 
 /**
@@ -123,6 +144,9 @@ export function stageShot(name, world) {
 /** A fresh world staged for one screenshot scene, from the given seed. */
 export function worldForShot(name, seed) {
   const world = createWorld(seed === undefined ? 1 : seed);
+  // Every shot carries the prior run's best, so BEST is a real earned score on
+  // every screen — the title, the play HUD, and the end screens alike.
+  world.best = referenceBest();
   const staged = stageShot(name, world);
   return { world, screen: staged.screen, best: staged.best };
 }

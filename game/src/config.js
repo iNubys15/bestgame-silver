@@ -23,7 +23,7 @@ export const KEEPER = {
   radius: 16,
   speed: 265,
   beamRange: 340,
-  beamHalfAngle: 0.38,
+  beamHalfAngle: 0.44,
   beamDps: 60,
   flareRadius: 210,
   flareDamage: 45,
@@ -46,11 +46,11 @@ export const WISP = {
   baseSpeed: 34,
   speedPerNight: 7,
   radius: 14,
-  spawnStart: 1.05,
-  spawnEnd: 0.4,
-  maxAlive: 34,
-  budgetBase: 24,
-  budgetPerNight: 8,
+  spawnStart: 0.9,
+  spawnEnd: 0.18,
+  maxAlive: 60,
+  budgetBase: 40,
+  budgetPerNight: 12,
 };
 
 /** Three kinds of shadow, each with its own look, speed and threat. */
@@ -76,7 +76,7 @@ export const WISP_KINDS = {
     color: '#9d7bff', core: '#1c1440', label: 'Glooms',
   },
   boss: {
-    hp: 1000, speed: 18, radius: 34, score: 250, touch: 30, wobble: 0.2,
+    hp: 2000, speed: 18, radius: 46, score: 400, touch: 30, wobble: 0.2,
     color: '#c9a6ff', core: '#241a4a', label: 'The Hollow King',
   },
 };
@@ -97,15 +97,15 @@ export const SCORE = {
   wisp: 10,
   comboWindow: 3.0,
   comboMax: 8,
-  /** Later nights are worth more: each night adds 25% to a banish's score. */
-  nightBonusPerNight: 0.25,
+  /** Later nights are worth more: each night adds 40% to a banish's score. */
+  nightBonusPerNight: 0.4,
 };
 
 /** A run's grade, from its score: the judge sees the same line on the HUD. */
 export const GRADE = [
-  { min: 20000, label: 'S' },
-  { min: 12000, label: 'A' },
-  { min: 6000, label: 'B' },
+  { min: 32000, label: 'S' },
+  { min: 20000, label: 'A' },
+  { min: 10000, label: 'B' },
   { min: 0, label: 'C' },
 ];
 

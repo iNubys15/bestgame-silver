@@ -58,6 +58,7 @@ export function createWorld(seed) {
     banished: 0,
     embersGathered: 0,
     boss: null,
+    bossMet: false,
     charms: [],
     drainRate: LIGHT.drainPerSecond,
     emberTimer: 1.0,
@@ -173,6 +174,7 @@ function endNight(world, audio) {
   if (world.night === NIGHTS) {
     const boss = createBoss(world.rng);
     world.boss = boss;
+    world.bossMet = true;
     world.wisps.push(boss);
     world.banner = { text: 'Night 5 — THE HOLLOW KING wakes', timer: 2.5 };
   }
