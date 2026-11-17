@@ -20,10 +20,10 @@ export const COLORS = {
 };
 
 export const KEEPER = {
-  radius: 14,
+  radius: 16,
   speed: 265,
   beamRange: 340,
-  beamHalfAngle: 0.34,
+  beamHalfAngle: 0.38,
   beamDps: 60,
   flareRadius: 210,
   flareDamage: 45,
@@ -46,8 +46,8 @@ export const WISP = {
   baseSpeed: 34,
   speedPerNight: 7,
   radius: 14,
-  spawnStart: 1.6,
-  spawnEnd: 0.55,
+  spawnStart: 1.15,
+  spawnEnd: 0.45,
   maxAlive: 26,
 };
 

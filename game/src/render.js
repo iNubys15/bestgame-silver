@@ -81,7 +81,7 @@ function drawBeam(ctx, keeper) {
   const x2 = keeper.x + Math.cos(aim + half) * len;
   const y2 = keeper.y + Math.sin(aim + half) * len;
   const grad = ctx.createLinearGradient(keeper.x, keeper.y, keeper.x + Math.cos(aim) * len, keeper.y + Math.sin(aim) * len);
-  grad.addColorStop(0, 'rgba(255, 179, 71, 0.34)');
+  grad.addColorStop(0, 'rgba(255, 179, 71, 0.40)');
   grad.addColorStop(1, 'rgba(255, 179, 71, 0)');
   ctx.save();
   ctx.globalCompositeOperation = 'lighter';
@@ -377,7 +377,7 @@ export function drawWorld(ctx, world) {
   }
   drawBackground(ctx, world);
   drawEmbers(ctx, world);
-  if (world.screen === SCREEN_PLAY || world.screen === SCREEN_WIN || world.screen === SCREEN_LOSS) {
+  if (world.screen === SCREEN_PLAY) {
     drawBeam(ctx, world.keeper);
   }
   drawWisps(ctx, world);

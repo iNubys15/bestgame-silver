@@ -124,6 +124,7 @@ function endNight(world, audio) {
   world.night += 1;
   if (world.night > NIGHTS) {
     world.screen = SCREEN_WIN;
+    world.floaters.length = 0;
     if (world.score > world.best) {
       world.best = world.score;
       saveBest(world.best);
@@ -147,6 +148,7 @@ function loseLight(world, amount, audio) {
   if (audio) audio.hurt();
   if (world.light <= 0) {
     world.screen = SCREEN_LOSS;
+    world.floaters.length = 0;
     if (world.score > world.best) {
       world.best = world.score;
       saveBest(world.best);
@@ -191,6 +193,7 @@ export function stepWorld(world, input, dt, audio) {
   world.light = Math.max(0, world.light - LIGHT.drainPerSecond * dt);
   if (world.light <= 0) {
     world.screen = SCREEN_LOSS;
+    world.floaters.length = 0;
     if (world.score > world.best) {
       world.best = world.score;
       saveBest(world.best);
