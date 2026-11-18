@@ -17,7 +17,7 @@ while the keeper fights the last shadows.
 
 - **Move** — WASD or arrow keys
 - **Aim the beam** — mouse (wisps caught in the light burn away)
-- **Flare** — Space or click (a bright burst that burns nearby wisps, costs light; the keeper holds it until the crowd is thick, so the play shot catches the burst the instant it banishes eleven shadows at once with the Hollow King inside the blast)
+- **Flare** — Space or click (a bright burst that burns nearby wisps, costs light; the keeper holds it until the crowd is thick, so the play shot catches the burst the instant it banishes ten shadows at once with the Hollow King inside the blast)
 - **Start / restart** — Enter or R
 
 Survive 5 nights to win. Each night the wisps come faster and thicker. Embers restore

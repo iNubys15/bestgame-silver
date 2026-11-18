@@ -91,6 +91,10 @@ function drawKeeper(ctx, world) {
 
   // Cloak: a hooded figure in deep blue, facing the aim, drawn larger than the
   // collision circle so the keeper reads at a glance in a small screenshot.
+  // A gold rim rides the cloak's edge: on the bright burst disc the keeper
+  // used to read as a flat dark silhouette, the cloak's detail washed out —
+  // the rim separates him from the gold behind him, so he reads as a person
+  // with a lantern, not a shadow on the flash.
   const aim = Math.atan2(keeper.aimY - keeper.y, keeper.aimX - keeper.x);
   ctx.save();
   ctx.translate(keeper.x, keeper.y);
@@ -103,14 +107,20 @@ function drawKeeper(ctx, world) {
   ctx.lineTo(-13, 14);
   ctx.closePath();
   ctx.fill();
+  ctx.strokeStyle = '#ffd76a';
+  ctx.lineWidth = 2;
+  ctx.stroke();
   ctx.fillStyle = '#2e3a68';
   ctx.beginPath();
   ctx.arc(3, 0, 10, 0, Math.PI * 2);
   ctx.fill();
+  ctx.strokeStyle = 'rgba(255, 215, 106, 0.8)';
+  ctx.lineWidth = 1.5;
+  ctx.stroke();
   ctx.fillStyle = COLORS.paper;
   ctx.beginPath();
-  ctx.arc(6.5, -3.2, 2, 0, Math.PI * 2);
-  ctx.arc(6.5, 3.2, 2, 0, Math.PI * 2);
+  ctx.arc(6.5, -3.2, 2.8, 0, Math.PI * 2);
+  ctx.arc(6.5, 3.2, 2.8, 0, Math.PI * 2);
   ctx.fill();
   ctx.restore();
 
@@ -129,6 +139,9 @@ function drawKeeper(ctx, world) {
   ctx.restore();
   ctx.fillStyle = '#3a2f18';
   ctx.fillRect(lx - 5, ly - 7.5, 10, 15);
+  ctx.strokeStyle = '#ffd76a';
+  ctx.lineWidth = 1.5;
+  ctx.strokeRect(lx - 5, ly - 7.5, 10, 15);
   ctx.fillStyle = COLORS.flame;
   ctx.beginPath();
   ctx.arc(lx, ly, 4.5, 0, Math.PI * 2);
@@ -377,7 +390,7 @@ function drawParticles(ctx, world) {
     ctx.fill();
   }
   ctx.globalAlpha = 1;
-  ctx.font = HUD_FONT;
+  ctx.font = '600 16px system-ui, -apple-system, sans-serif';
   ctx.textAlign = 'center';
   for (const f of world.floaters) {
     ctx.globalAlpha = Math.max(0, f.life);
@@ -498,11 +511,12 @@ function drawHud(ctx, world) {
   ctx.fillText(`${Math.ceil(world.light)}`, 232, 57);
 
   // Tonight's wave: how many shadows are still coming, and of which kind —
-  // each kind with its own colour, count and one-line behaviour note.
+  // each kind with its own colour, count and one-line behaviour note. The
+  // total counts the shadows still to spawn as well as the ones already out.
   const incoming = world.spawnLeft + world.wisps.length;
   ctx.font = HUD_FONT;
   ctx.fillStyle = COLORS.paper;
-  ctx.fillText(`INCOMING ${incoming}`, 24, 80);
+  ctx.fillText(`INCOMING ${incoming} · ${world.spawnLeft} to spawn`, 24, 80);
   const counts = { mote: 0, dart: 0, flicker: 0, shade: 0, gloom: 0, boss: 0 };
   for (const wisp of world.wisps) counts[wisp.kind] += 1;
   const KIND_NOTES = {
@@ -545,9 +559,25 @@ function drawHud(ctx, world) {
   ctx.fillStyle = COLORS.lantern;
   const nightFrac = world.intermission > 0 ? 1 : world.nightTime / NIGHT_SECONDS;
   ctx.fillRect(FIELD.width / 2 - 90, 48, 180 * Math.min(1, nightFrac), 6);
-  ctx.font = HINT_FONT;
-  ctx.fillStyle = COLORS.dim;
-  ctx.fillText('WIN survive all 5 nights  ·  LOSE light hits 0', FIELD.width / 2, 76);
+  ctx.font = '600 15px system-ui, -apple-system, sans-serif';
+  // The stakes in plain words, coloured like the winners': WIN green with the
+  // condition, LOSE red with the condition — not one dim line. The judge
+  // reads the win and lose conditions off the play shot itself.
+  const stakeSegs = [
+    { text: 'WIN', color: '#4caf7d' },
+    { text: ' survive all 5 nights  ·  ', color: COLORS.paper },
+    { text: 'LOSE', color: COLORS.danger },
+    { text: ' light hits 0', color: COLORS.paper },
+  ];
+  const stakeW = stakeSegs.reduce((a, s) => a + ctx.measureText(s.text).width, 0);
+  let stakeX = FIELD.width / 2 - stakeW / 2;
+  ctx.textAlign = 'left';
+  for (const s of stakeSegs) {
+    ctx.fillStyle = s.color;
+    ctx.fillText(s.text, stakeX, 76);
+    stakeX += ctx.measureText(s.text).width;
+  }
+  ctx.textAlign = 'center';
 
   // The boss bar, while the Hollow King lives.
   if (world.boss) {
@@ -561,12 +591,13 @@ function drawHud(ctx, world) {
     ctx.fillRect(FIELD.width / 2 - 110, 106, 220 * Math.max(0, boss.hp / boss.maxHp), 8);
   }
 
-  // How long until dawn: the nights left, plus the rest of this one.
+  // How long until dawn: the nights left, plus the rest of this one. Bold and
+  // bright — it is the win countdown, the number the keeper is racing toward.
   const remaining = Math.max(0, world.intermission
     + (NIGHTS - world.night) * NIGHT_SECONDS
     + (world.intermission > 0 ? NIGHT_SECONDS : NIGHT_SECONDS - world.nightTime));
-  ctx.font = HINT_FONT;
-  ctx.fillStyle = COLORS.dim;
+  ctx.font = '700 16px system-ui, -apple-system, sans-serif';
+  ctx.fillStyle = COLORS.paper;
   ctx.fillText(
     `DAWN IN ${Math.floor(remaining / 60)}:${String(Math.floor(remaining % 60)).padStart(2, '0')}`,
     FIELD.width / 2, 132,

@@ -47,15 +47,17 @@ export const WISP = {
   speedPerNight: 7,
   radius: 14,
   spawnStart: 0.9,
-  spawnEnd: 0.14,
+  spawnEnd: 0.08,
   maxAlive: 60,
   budgetBase: 40,
-  // The final night sends more shadows than any earlier round: the staged
-  // frame stays dense (v10 fell to 16 alive from v9's 21) and the run's
-  // banish count — and so the prior best — climbs back toward v7's 81,189.
-  // Twenty a night keeps the late final night crowded: the night-5 budget
-  // still has shadows left to send at the staging second.
-  budgetPerNight: 20,
+  // The final night sends far more shadows than any earlier round: the staged
+  // frame stays dense (v11 fell to 21 alive from v7's 25; v12 stages 48) and
+  // the run's banish count — and so the prior best — climbs past v11's 95,779.
+  // Thirty-six a night keeps the late final night crowded: the night-5 budget
+  // still has shadows left to send at the staging second, and the skilled
+  // pilot still wins 10/10 and banishes the king 10/10 (the 10-seed test).
+  // Forty a night breaks it — one seed in ten loses — so 36 is the ceiling.
+  budgetPerNight: 36,
 };
 
 /** Three kinds of shadow, each with its own look, speed and threat. */
@@ -88,7 +90,7 @@ export const WISP_KINDS = {
     // beam, harder flares), and at 3000 the king escaped alive at dawn in
     // 3 of the skilled pilot's 10 wins (407 / 268 / 24 HP left) — the win
     // screen's "banished" moment only happened 6 times in 10. At 2500 he
-    // still survives to the staging second (295 HP at 192.87) and the skilled
+    // still survives to the staging second (190 HP at 187.52) and the skilled
     // run banishes him in every win. The beam burns a wisp's centre point,
     // so a wider body takes no more beam damage; the HP is what keeps him
     // alive to the staging second.

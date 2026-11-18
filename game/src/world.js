@@ -97,7 +97,24 @@ function burst(world, x, y, color, count, speed) {
 }
 
 function floater(world, x, y, text, color) {
-  world.floaters.push({ x, y, text, color, life: 1.1 });
+  // A new floater never lands on a live one: nudge it away from any live
+  // floater it would crowd — down when the conflict sits above it, up when
+  // it sits below — until it has room (v11's "+208"/"+5" pair sat 7px apart,
+  // and a nudge in one direction alone once pushed a floater into another).
+  // The bar is the text's width, not the centre distance: two "+208"s 30px
+  // apart still touch at 16px type. Display only — no score or balance
+  // changes, and the render still clamps the top edge.
+  let fy = y;
+  for (let tries = 0; tries < 4; tries += 1) {
+    let conflict = null;
+    for (const other of world.floaters) {
+      if (Math.abs(other.x - x) < 40 && Math.abs(other.y - fy) < 14) { conflict = other; break; }
+    }
+    if (!conflict) break;
+    fy += conflict.y < fy ? 18 : -18;
+    fy = Math.max(14, Math.min(FIELD.height - 10, fy));
+  }
+  world.floaters.push({ x, y: fy, text, color, life: 1.1 });
 }
 
 function stepParticles(world, dt) {

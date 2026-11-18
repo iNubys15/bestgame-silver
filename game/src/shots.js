@@ -9,14 +9,14 @@ import {
 const START_SECONDS = 5;
 // The play shot stages the flare burst: the skilled run holds the flare until the
 // crowd is thick (seven or more shadows close on the final night), then fires —
-// the 192.77s flare banishes eleven shadows at once and catches the Hollow King
-// deep inside the blast, with 21 shadows still alive beside the king and the
+// the 187.42s flare banishes ten shadows at once and catches the Hollow King
+// deep inside the blast, with 47 shadows still alive beside the king and the
 // king at under an eighth of his health, so the frame shows the fight's peak
 // moment at its busiest, not just a busy mid-fight. The callout reads the real
-// count. The keeper stands in the open field at the staging second (592,378),
+// count. The keeper stands in the open field at the staging second (313,307),
 // clear of every HUD panel — in v9 he stood under the top-centre panel and the
 // judge saw a beam and a burst with no player.
-const PLAY_SECONDS = 192.87;
+const PLAY_SECONDS = 187.52;
 const LIMIT_SECONDS = 600;
 
 function blankInput() {
