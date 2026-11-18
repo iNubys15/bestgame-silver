@@ -4,6 +4,8 @@ export const FIELD = { width: 960, height: 540 };
 export const STEP = 1 / 60;
 export const NIGHTS = 5;
 export const NIGHT_SECONDS = 40;
+/** The breather between nights: 3s of quiet before the next night's banner. */
+export const INTERMISSION_SECONDS = 3;
 
 export const COLORS = {
   ink: '#0b0e1e',

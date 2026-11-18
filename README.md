@@ -25,7 +25,9 @@ light (+16) and score (+5). Banishing a wisp scores its value × your combo, and
 nights pay more — a night-5 banish is worth 2.6× a night-1 one. Holding the beam on a
 target holds your combo (3-second window); letting go lets it lapse. A wisp that
 touches you steals light and breaks the combo. Your grade (C/B/A/S) follows your score,
-and the HUD shows a minimap of the hollow plus a countdown to dawn.
+and the HUD shows a minimap of the hollow plus a countdown to dawn, and two
+stake chips: WIN filled by how far the keeper is toward dawn, LOSE filled by
+how much of the light the dark has taken.
 
 Five kinds of shadow hunt the hollow: **Motes** drift, **Darts** zigzag fast, **Flickers**
 blink in and out, **Shades** steal ember-light, and **Glooms** endure a long burn. On the

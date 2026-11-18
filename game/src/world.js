@@ -1,7 +1,7 @@
 // The game itself: screens, nights, scoring, and every rule that makes the light a
 // resource. One fixed step advances the whole world; nothing here touches the DOM.
 import {
-  CHARMS, CHARM_EVERY, EMBER, FIELD, KEEPER, LIGHT, NIGHTS, NIGHT_SECONDS,
+  CHARMS, CHARM_EVERY, EMBER, FIELD, INTERMISSION_SECONDS, KEEPER, LIGHT, NIGHTS, NIGHT_SECONDS,
   SCORE, WISP, WISP_KINDS,
 } from './config.js';
 import { mulberry32, range } from './random.js';
@@ -145,7 +145,7 @@ function grantCharm(world) {
   if (charm === 'Deep Well') world.drainRate *= 0.9;
   if (charm === 'Swift Feet') world.keeper.speed *= 1.12;
   // The announcement sits left of the keeper, clear of the boss's floating bar
-  // above him and the flare callout overhead — it used to crowd the boss bar.
+  // and the flare callout overhead — it used to crowd the boss bar.
   const fx = Math.max(80, Math.min(FIELD.width - 80, world.keeper.x - 150));
   const fy = Math.max(40, Math.min(FIELD.height - 40, world.keeper.y - 10));
   floater(world, fx, fy, `Charm: ${charm}`, '#ffe08a');
@@ -195,7 +195,7 @@ function endNight(world, audio) {
   }
   world.light = Math.min(LIGHT.max, world.light + LIGHT.nightBonus);
   world.nightTime = 0;
-  world.intermission = 3;
+  world.intermission = INTERMISSION_SECONDS;
   world.banner = { text: `Night ${world.night} — the dark thickens`, timer: 2.5 };
   world.spawnTimer = 1.0;
   world.spawnLeft = nightBudget(world.night);

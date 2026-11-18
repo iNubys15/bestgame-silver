@@ -1,7 +1,7 @@
 // Every pixel of EMBERWATCH: the hollow at night, the keeper and the beam, the wisps,
 // the HUD, and the title, dawn and darkness screens. Nothing here changes the world.
 import {
-  CHARMS, CHARM_EVERY, COLORS, FIELD, GRADE, KEEPER, LIGHT, NIGHTS, NIGHT_SECONDS, SCORE, WISP_KINDS, gradeFor,
+  CHARMS, CHARM_EVERY, COLORS, FIELD, GRADE, INTERMISSION_SECONDS, KEEPER, LIGHT, NIGHTS, NIGHT_SECONDS, SCORE, WISP_KINDS, gradeFor,
 } from './config.js';
 import {
   SCREEN_LOSS, SCREEN_PLAY, SCREEN_TITLE, SCREEN_WIN,
@@ -27,6 +27,24 @@ export function nextCharmInfo(banished) {
   };
 }
 
+/** How far the keeper is toward dawn, and how far the dark is toward taking
+ * the hollow — both real numbers from live state, never labels. A run is five
+ * nights of NIGHT_SECONDS plus the intermission after each of the first four,
+ * and the run clock (world.time, reset by startGame) is the elapsed time, so
+ * the WIN chip's fill is the fraction of the run survived. The LOSE chip's
+ * fill is the fraction of the lantern drained. The HUD draws both as chips
+ * with progress bars, like the winners' (rank3's WIN chip with 5/7, rank7's
+ * full-width WIN/LOSE bars with 5,023/9,000 and 76/100) — the judge reads
+ * the race off the play shot itself: green nearly full, red a sliver. */
+export function winProgress(world) {
+  const total = NIGHTS * NIGHT_SECONDS + (NIGHTS - 1) * INTERMISSION_SECONDS;
+  return Math.max(0, Math.min(1, world.time / total));
+}
+
+export function loseProgress(world) {
+  return Math.max(0, Math.min(1, (LIGHT.max - world.light) / LIGHT.max));
+}
+
 /** The three top HUD panels, as [x, y, w, h]: left, top-centre, right. The
  * floating boss bar and the flare callout must keep clear of them. */
 const TOP_PANELS = [
@@ -35,9 +53,9 @@ const TOP_PANELS = [
   [780, 18, 168, 236],
 ];
 
-/** Whether the king's floating bar, hung above him, would land on a HUD
- * panel — its pill and text would read as part of the panel instead of as
- * his own chip. The pill is at most ~260 wide (the text "THE HOLLOW KING
+/** Whether the king's floating bar, which hangs above him by default, would land
+ * on a HUD panel — its pill and text would read as part of the panel instead of
+ * as his own chip. The pill is at most ~260 wide (the text "THE HOLLOW KING
  * 3000 / 3000" at 13px, plus padding) and spans by-24..by+13 where
  * by = boss.y - r - 34. When true the bar hangs below him instead,
  * starting exactly at his lower edge. */
@@ -235,7 +253,9 @@ function drawWisps(ctx, world) {
 }
 
 /** The Hollow King, drawn large in the open field: crowned, glowing, and carrying
- * his own health bar above him, so the boss reads at a glance in a small shot. */
+ * his own health bar in the field — above him by default, below him when he
+ * stands high enough that the pill would land on a HUD panel — so the boss
+ * reads at a glance in a small shot. */
 function drawBoss(ctx, world) {
   const boss = world.boss;
   if (!boss) return;
@@ -336,8 +356,9 @@ function drawBoss(ctx, world) {
     ctx.stroke();
   }
 
-  // His health bar, floating above him in the field — not hidden under a panel.
-  // It carries its own dark pill behind the text and the bar: in v8 the text
+  // His health bar, floating in the field beside him — above by default, below
+  // when he stands high enough that the pill would land on a panel. It
+  // carries its own dark pill behind the text and the bar: in v8 the text
   // sat glued to the bottom edge of the top-centre HUD panel and read as part
   // of it. The pill makes the bar its own chip, wherever the king stands —
   // and when he stands high enough that the pill would land on a panel, the
@@ -560,22 +581,41 @@ function drawHud(ctx, world) {
   const nightFrac = world.intermission > 0 ? 1 : world.nightTime / NIGHT_SECONDS;
   ctx.fillRect(FIELD.width / 2 - 90, 48, 180 * Math.min(1, nightFrac), 6);
   ctx.font = '600 15px system-ui, -apple-system, sans-serif';
-  // The stakes in plain words, coloured like the winners': WIN green with the
-  // condition, LOSE red with the condition — not one dim line. The judge
-  // reads the win and lose conditions off the play shot itself.
-  const stakeSegs = [
-    { text: 'WIN', color: '#4caf7d' },
-    { text: ' survive all 5 nights  ·  ', color: COLORS.paper },
-    { text: 'LOSE', color: COLORS.danger },
-    { text: ' light hits 0', color: COLORS.paper },
+  // The stakes as chips with real progress, like the winners': a green WIN
+  // chip filled by how far the keeper is toward dawn, a red LOSE chip filled
+  // by how much of the light the dark has taken. Both numbers come from live
+  // state (winProgress / loseProgress) — the bars are the game, not labels.
+  // The fill is the bar; the text sits on top of it with a dark outline, so
+  // it reads over both the filled and the empty part. The outline joins are
+  // round: a 5px mitered outline once threw long spikes through the win
+  // screen's boss line (v12's "crown spikes" were the text's own outline).
+  const winFrac = winProgress(world);
+  const loseFrac = loseProgress(world);
+  const chipY = 62;
+  const chipH = 26;
+  const chipW = 163;
+  const chipGap = 8;
+  const chipX0 = 313;
+  const chips = [
+    { x: chipX0, fill: '#4caf7d', frac: winFrac, text: `WIN · ${Math.round(winFrac * 100)}% TO DAWN` },
+    { x: chipX0 + chipW + chipGap, fill: COLORS.danger, frac: loseFrac, text: `LOSE · DARK ${Math.round(loseFrac * 100)}%` },
   ];
-  const stakeW = stakeSegs.reduce((a, s) => a + ctx.measureText(s.text).width, 0);
-  let stakeX = FIELD.width / 2 - stakeW / 2;
-  ctx.textAlign = 'left';
-  for (const s of stakeSegs) {
-    ctx.fillStyle = s.color;
-    ctx.fillText(s.text, stakeX, 76);
-    stakeX += ctx.measureText(s.text).width;
+  ctx.font = '600 13px system-ui, -apple-system, sans-serif';
+  ctx.lineJoin = 'round';
+  for (const chip of chips) {
+    ctx.fillStyle = 'rgba(5, 6, 15, 0.65)';
+    ctx.fillRect(chip.x, chipY, chipW, chipH);
+    ctx.fillStyle = chip.fill;
+    ctx.fillRect(chip.x, chipY, chipW * chip.frac, chipH);
+    ctx.strokeStyle = 'rgba(255, 243, 214, 0.3)';
+    ctx.lineWidth = 1;
+    ctx.strokeRect(chip.x + 0.5, chipY + 0.5, chipW - 1, chipH - 1);
+    ctx.textAlign = 'center';
+    ctx.strokeStyle = 'rgba(5, 6, 16, 0.85)';
+    ctx.lineWidth = 3;
+    ctx.strokeText(chip.text, chip.x + chipW / 2, chipY + 18);
+    ctx.fillStyle = COLORS.paper;
+    ctx.fillText(chip.text, chip.x + chipW / 2, chipY + 18);
   }
   ctx.textAlign = 'center';
 
@@ -705,8 +745,13 @@ function drawOverlay(ctx, alpha, color) {
 function centerText(ctx, text, y, font, color) {
   ctx.font = font;
   ctx.textAlign = 'center';
-  // A dark outline first, so the words read even over the dawn sun.
+  // A dark outline first, so the words read even over the dawn sun. The joins
+  // are round: with the default miter join, a 5px outline threw long spikes
+  // through the win screen's "THE HOLLOW KING banished" line — v12's "crown
+  // spikes" were the text's own outline, not the fallen crown (proved by
+  // re-rendering the win shot with the crown removed: the spikes stayed).
   ctx.lineWidth = 5;
+  ctx.lineJoin = 'round';
   ctx.strokeStyle = 'rgba(5, 6, 15, 0.55)';
   ctx.strokeText(text, FIELD.width / 2, y);
   ctx.fillStyle = color;
