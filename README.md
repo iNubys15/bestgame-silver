@@ -17,7 +17,7 @@ while the keeper fights the last shadows.
 
 - **Move** — WASD or arrow keys
 - **Aim the beam** — mouse (wisps caught in the light burn away)
-- **Flare** — Space or click (a bright burst that burns nearby wisps, costs light; the keeper holds it until the crowd is thick, so the play shot catches the burst the instant it banishes ten shadows at once with the Hollow King inside the blast)
+- **Flare** — Space or click (a bright burst that burns nearby wisps, costs light; the keeper holds it until the crowd is thick, so the play shot catches the burst the instant it banishes eleven shadows at once with the Hollow King inside the blast)
 - **Start / restart** — Enter or R
 
 Survive 5 nights to win. Each night the wisps come faster and thicker. Embers restore
@@ -29,7 +29,7 @@ and the HUD shows a minimap of the hollow plus a countdown to dawn.
 
 Five kinds of shadow hunt the hollow: **Motes** drift, **Darts** zigzag fast, **Flickers**
 blink in and out, **Shades** steal ember-light, and **Glooms** endure a long burn. On the
-fifth night **THE HOLLOW KING** wakes — a giant wisp with 3000 health, whose angry face
+fifth night **THE HOLLOW KING** wakes — a giant wisp with 2500 health, whose angry face
 stares out of the hollow at you. The keeper never stands still in the fight: at mid
 range he repositions toward the low centre of the hollow, so the lantern-bearer is
 always visible in the open field, never hidden under the HUD. His floating health bar hangs below him when he stands

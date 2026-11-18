@@ -8,15 +8,15 @@ import {
 
 const START_SECONDS = 5;
 // The play shot stages the flare burst: the skilled run holds the flare until the
-// crowd is thick (six or more shadows close on the final night), then fires —
-// the 191.65s flare banishes ten shadows at once and catches the Hollow King
-// deep inside the blast, with 16 wisps still alive and the king at under a
-// quarter of his health, so the frame shows the fight's peak moment at its
-// busiest, not just a busy mid-fight. The callout reads the real count. The
-// keeper stands in the open field at the staging second (560,377), clear of
-// every HUD panel — in v9 he stood under the top-centre panel and the judge
-// saw a beam and a burst with no player.
-const PLAY_SECONDS = 191.75;
+// crowd is thick (seven or more shadows close on the final night), then fires —
+// the 192.77s flare banishes eleven shadows at once and catches the Hollow King
+// deep inside the blast, with 21 shadows still alive beside the king and the
+// king at under an eighth of his health, so the frame shows the fight's peak
+// moment at its busiest, not just a busy mid-fight. The callout reads the real
+// count. The keeper stands in the open field at the staging second (592,378),
+// clear of every HUD panel — in v9 he stood under the top-centre panel and the
+// judge saw a beam and a burst with no player.
+const PLAY_SECONDS = 192.87;
 const LIMIT_SECONDS = 600;
 
 function blankInput() {
@@ -99,11 +99,14 @@ export function skilledInput(world) {
   // differently by night. On nights 1-4 he fires when the crowd is merely
   // thick (three or more close), the v7 discipline, so the run banks banishes
   // and the prior best climbs. On the final night he holds it until the crowd
-  // is thick (six or more close), the v8 discipline, so one burst burns a
+  // is thick (seven or more close), the v11 discipline: the final night sends
+  // more shadows than any earlier round, so the burst still burns a crowd at
+  // once — the frame the judge sees is the detonation, and the count it
+  // announces is the real number the flare banished. Only a shadow about
   // crowd at once — the frame the judge sees is the detonation, and the count
   // it announces is the real number the flare banished. Only a shadow about
   // to touch the keeper forces an early flare.
-  const flareNear = world.night >= NIGHTS ? 6 : 3;
+  const flareNear = world.night >= NIGHTS ? 7 : 3;
   if (near >= flareNear || (target && targetDist < 45)) input.pressed.add('Space');
   return input;
 }

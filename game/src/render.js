@@ -381,8 +381,15 @@ function drawParticles(ctx, world) {
   ctx.textAlign = 'center';
   for (const f of world.floaters) {
     ctx.globalAlpha = Math.max(0, f.life);
+    // Clamped inside the field and outlined in dark: a floater born near the top
+    // edge used to be cut by it, and a gold floater on the gold burst disc (the
+    // "Charm: Swift Feet" announcement) washed out to nothing.
+    const fy = Math.max(14, f.y);
+    ctx.strokeStyle = 'rgba(5, 6, 16, 0.85)';
+    ctx.lineWidth = 3;
+    ctx.strokeText(f.text, f.x, fy);
     ctx.fillStyle = f.color;
-    ctx.fillText(f.text, f.x, f.y);
+    ctx.fillText(f.text, f.x, fy);
   }
   ctx.globalAlpha = 1;
 }
